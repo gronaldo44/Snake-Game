@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ChatClient.MainPage">
+<ScrollView>
+    <VerticalStackLayout>
+        <HorizontalStackLayout HorizontalOptions="Center">
+            <Label
+                Text="server:"
+                VerticalOptions="Center"
+                HorizontalOptions="Center" />
+            <Entry
+                Text="localhost"
+                x:Name="serverAddress"
+                HorizontalOptions="Center" />
+            <Button
+                x:Name="connectButton"
+                Text="Connect"
+                Clicked="OnConnectClicked"
+                HorizontalOptions="Center" />
+        </HorizontalStackLayout>
+        <Border WidthRequest="500">
+            <Editor 
+                x:Name="messages"
+                Text="Received messages go here"
+                VerticalOptions="Center"
+                IsReadOnly="True"
+                HeightRequest="500"
+                WidthRequest="500" />
+        </Border>
+        <Entry
+            x:Name="messageToSendBox"
+            Text="Type your message here and press enter"
+            Completed="OnMessageEnter"
+            WidthRequest="500" />
+    </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+
