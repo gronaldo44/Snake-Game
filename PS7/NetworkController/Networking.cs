@@ -185,6 +185,11 @@ public static class Networking
     public static void GetData(SocketState state)
     {
         throw new NotImplementedException();
+        // TODO: Start Receiving Data
+        //          Callback: "ReceiveCallback"
+
+        // TODO: Handle Errors 
+        //      Possibly Only Necessary in the Callback, "ReceiveCallback"
     }
 
     /// <summary>
@@ -207,6 +212,13 @@ public static class Networking
     private static void ReceiveCallback(IAsyncResult ar)
     {
         throw new NotImplementedException();
+        // TODO: Finalize Receive
+        // TODO: Handle Errors
+        //      Possibly Only Necessary in the Caller, "GetData"
+
+        // TODO: Read Data
+        //SocketState socket = (SocketState)ar.AsyncState;
+        //socket.OnNetworkAction(socket);
     }
 
     /// <summary>
@@ -222,6 +234,12 @@ public static class Networking
     public static bool Send(Socket socket, string data)
     {
         throw new NotImplementedException();
+        // TODO: Validate Socket
+
+        // TODO: Begin Sending Data
+        //      Callback: "SendCallback"
+
+        // TODO: Check if Successful Send
     }
 
     /// <summary>
@@ -238,6 +256,7 @@ public static class Networking
     private static void SendCallback(IAsyncResult ar)
     {
         throw new NotImplementedException();
+        // TODO: Finalize Send
     }
 
 
@@ -255,6 +274,12 @@ public static class Networking
     public static bool SendAndClose(Socket socket, string data)
     {
         throw new NotImplementedException();
+        // TODO: Validate Socket
+
+        // TODO: Begin Sending Data
+        //          Callback: "SendAndCloseCallback"
+
+        // TODO: Check if Successful Send
     }
 
     /// <summary>
@@ -273,6 +298,8 @@ public static class Networking
     private static void SendAndCloseCallback(IAsyncResult ar)
     {
         throw new NotImplementedException();
+        // TODO: Finalize Send
+        // TODO: Close the Socket
     }
 
     #endregion
