@@ -6,11 +6,9 @@ using System.Text;
 namespace NetworkUtil;
 
 public static class Networking
+
 {
     #region Server-Side
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // Server-Side Code
-    /////////////////////////////////////////////////////////////////////////////////////////
 
     /// <summary>
     /// Starts a TcpListener on the specified port and starts an event-loop to accept new clients.
@@ -21,10 +19,15 @@ public static class Networking
     /// <param name="port">The the port to listen on</param>
     public static TcpListener StartServer(Action<SocketState> toCall, int port)
     {
-        throw new NotImplementedException();
-        // TODO: Start TcpListener
-        // TODO: Begin Event-Loop
+        // Start TcpListener
+        IPAddress ipAddress = new IPAddress(new byte[] { 127, 0, 0, 1 });
+        TcpListener listener = new TcpListener(ipAddress, port);
+        // Begin Event-Loop
         //          Callback: "AcceptNewClient"
+        Tuple<Action<SocketState>, TcpListener> ar = new Tuple<Action<SocketState>, TcpListener>(toCall, listener);
+        listener.BeginAcceptSocket(AcceptNewClient, ar);
+
+        return listener;
     }
 
     /// <summary>
@@ -47,8 +50,11 @@ public static class Networking
     /// 1) a delegate so the user can take action (a SocketState Action), and 2) the TcpListener</param>
     private static void AcceptNewClient(IAsyncResult ar)
     {
-        throw new NotImplementedException();
         // TODO: Finalize Connection
+        Tuple<Action<SocketState>, TcpListener> tup = (Tuple<Action<SocketState>, TcpListener>)ar.AsyncState;
+        TcpListener listener = tup.Item2;
+        Socket socket = listener.EndAcceptSocket(ar);
+        SocketState state = new SocketState(tup.Item1, socket);
         // TODO: Allow User to Take Action
 
         // TODO: Handle Errors
@@ -61,16 +67,12 @@ public static class Networking
     /// </summary>
     public static void StopServer(TcpListener listener)
     {
-        //listener.Stop();
-        throw new NotImplementedException();
+        listener.Stop();
     }
 
     #endregion
 
     #region Client-Side
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // Client-Side Code
-    /////////////////////////////////////////////////////////////////////////////////////////
 
     /// <summary>
     /// Begins the asynchronous process of connecting to a server via BeginConnect, 
@@ -167,9 +169,6 @@ public static class Networking
     #endregion
 
     #region Server and Client Common
-    /////////////////////////////////////////////////////////////////////////////////////////
-    // Server and Client Common Code
-    /////////////////////////////////////////////////////////////////////////////////////////
 
     /// <summary>
     /// Begins the asynchronous process of receiving data via BeginReceive, using ReceiveCallback 
