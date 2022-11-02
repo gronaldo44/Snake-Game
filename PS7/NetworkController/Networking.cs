@@ -6,7 +6,6 @@ using System.Text;
 namespace NetworkUtil;
 
 public static class Networking
-
 {
     #region Server-Side
 
@@ -23,8 +22,7 @@ public static class Networking
         IPAddress ipAddress = new IPAddress(new byte[] { 127, 0, 0, 1 });
         TcpListener listener = new TcpListener(ipAddress, port);
         // Begin Event-Loop
-        //          Callback: "AcceptNewClient"
-        Tuple<Action<SocketState>, TcpListener> ar = new Tuple<Action<SocketState>, TcpListener>(toCall, listener);
+        Tuple<TcpListener, Action<SocketState>> ar = new Tuple<TcpListener, Action<SocketState>>(listener, toCall);
         listener.BeginAcceptSocket(AcceptNewClient, ar);
 
         return listener;
@@ -50,16 +48,34 @@ public static class Networking
     /// 1) a delegate so the user can take action (a SocketState Action), and 2) the TcpListener</param>
     private static void AcceptNewClient(IAsyncResult ar)
     {
-        // TODO: Finalize Connection
-        Tuple<Action<SocketState>, TcpListener> tup = (Tuple<Action<SocketState>, TcpListener>)ar.AsyncState;
-        TcpListener listener = tup.Item2;
-        Socket socket = listener.EndAcceptSocket(ar);
-        SocketState state = new SocketState(tup.Item1, socket);
-        // TODO: Allow User to Take Action
+        Action<SocketState> networkAction = (x => { });    // Temporary value
 
-        // TODO: Handle Errors
-        // TODO: Event-Loop to Allow New Clients
-        //          Callback: "AcceptNewClient"
+        try
+        {
+            // Initialize State
+            object? nullTest = ar.AsyncState;
+            Tuple<TcpListener, Action<SocketState>> asyncState;
+            if (nullTest != null)
+            {
+                asyncState = (Tuple<TcpListener, Action<SocketState>>)nullTest;
+                networkAction = asyncState.Item2;
+                // Finalize Connection
+                Socket s = asyncState.Item1.EndAcceptSocket(ar);
+                // Allow User to Take Action
+                SocketState state = new SocketState(asyncState.Item2, s);
+                state.OnNetworkAction(state);
+
+                // Event-Loop to Allow New Clients
+                asyncState.Item1.BeginAcceptSocket(AcceptNewClient, asyncState);
+            }
+            else
+            {   // Async State was null
+                SocketState nullAsyncStateError = new SocketState(networkAction, "Async State is null");
+            }
+        } catch (Exception ex)
+        {   // Handle Errors
+            SocketState error = new SocketState(networkAction, ex.Message);
+        }
     }
 
     /// <summary>
