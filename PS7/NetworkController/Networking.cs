@@ -22,6 +22,9 @@ public static class Networking
     public static TcpListener StartServer(Action<SocketState> toCall, int port)
     {
         throw new NotImplementedException();
+        // TODO: Start TcpListener
+        // TODO: Begin Event-Loop
+        //          Callback: "AcceptNewClient"
     }
 
     /// <summary>
@@ -45,6 +48,12 @@ public static class Networking
     private static void AcceptNewClient(IAsyncResult ar)
     {
         throw new NotImplementedException();
+        // TODO: Finalize Connection
+        // TODO: Allow User to Take Action
+
+        // TODO: Handle Errors
+        // TODO: Event-Loop to Allow New Clients
+        //          Callback: "AcceptNewClient"
     }
 
     /// <summary>
@@ -52,6 +61,7 @@ public static class Networking
     /// </summary>
     public static void StopServer(TcpListener listener)
     {
+        //listener.Stop();
         throw new NotImplementedException();
     }
 
