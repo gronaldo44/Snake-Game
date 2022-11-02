@@ -137,6 +137,8 @@ public static class Networking
         socket.NoDelay = true;
 
         // TODO: Finish the remainder of the connection process as specified.
+        // TODO: Begin Connection
+        //          Callback: "ConnectedCallback"
     }
 
     /// <summary>
@@ -155,6 +157,11 @@ public static class Networking
     private static void ConnectedCallback(IAsyncResult ar)
     {
         throw new NotImplementedException();
+        // TODO: Finalize Connection
+
+        // TODO: Handle Errors
+
+        // TODO: Invoke toCall With a New SocketState
     }
 
     #endregion
