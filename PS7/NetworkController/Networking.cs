@@ -307,13 +307,18 @@ public static class Networking
     /// <returns>True if the send process was started, false if an error occurs or the socket is already closed</returns>
     public static bool SendAndClose(Socket socket, string data)
     {
-        throw new NotImplementedException();
-        // TODO: Validate Socket
-
-        // TODO: Begin Sending Data
-        //          Callback: "SendAndCloseCallback"
-
-        // TODO: Check if Successful Send
+        // Begin Sending Data
+        byte[] buffer = Encoding.UTF8.GetBytes(data);   // !This could be incorrect resulting in below being wrong!
+        try
+        {
+            socket.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, SendAndCloseCallback, socket);
+        } catch 
+        {   // Failed to start send
+            socket.Close();
+            return false;
+        }
+        // Successfully started Send
+        return true;
     }
 
     /// <summary>
@@ -331,9 +336,16 @@ public static class Networking
     /// </param>
     private static void SendAndCloseCallback(IAsyncResult ar)
     {
-        throw new NotImplementedException();
-        // TODO: Finalize Send
-        // TODO: Close the Socket
+        Socket socket = (Socket)ar.AsyncState!;
+        // Finalize Send
+        try
+        {
+            socket.EndSend(ar);         // !It feels like more should be done with the data before ending the send!
+        } catch
+        {
+        }
+        // Close the Socket
+        socket.Close();
     }
 
     #endregion
