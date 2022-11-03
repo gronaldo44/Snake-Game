@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 
@@ -48,34 +49,27 @@ public static class Networking
     /// 1) a delegate so the user can take action (a SocketState Action), and 2) the TcpListener</param>
     private static void AcceptNewClient(IAsyncResult ar)
     {
-        Action<SocketState> networkAction = (x => { });    // Temporary value
-
+        // Initialize State
+        Tuple<TcpListener, Action<SocketState>> asyncResult = (Tuple<TcpListener, Action<SocketState>>)ar.AsyncState!;
+        Action<SocketState> networkAction = asyncResult.Item2;
+        SocketState state;
+        Socket socket;
         try
         {
-            // Initialize State
-            object? nullTest = ar.AsyncState;
-            Tuple<TcpListener, Action<SocketState>> asyncState;
-            if (nullTest != null)
-            {
-                asyncState = (Tuple<TcpListener, Action<SocketState>>)nullTest;
-                networkAction = asyncState.Item2;
-                // Finalize Connection
-                Socket s = asyncState.Item1.EndAcceptSocket(ar);
-                // Allow User to Take Action
-                SocketState state = new SocketState(asyncState.Item2, s);
-                state.OnNetworkAction(state);
-
-                // Event-Loop to Allow New Clients
-                asyncState.Item1.BeginAcceptSocket(AcceptNewClient, asyncState);
-            }
-            else
-            {   // Async State was null
-                SocketState nullAsyncStateError = new SocketState(networkAction, "Async State is null");
-            }
-        } catch (Exception ex)
-        {   // Handle Errors
-            SocketState error = new SocketState(networkAction, ex.Message);
+            // Finalize Connection
+            socket = asyncResult.Item1.EndAcceptSocket(ar);
+            state = new SocketState(asyncResult.Item2, socket);
+            // Allow User to Take Action
+            state.OnNetworkAction(state);
         }
+        catch (Exception ex)
+        {   // Handle Errors
+            state = new SocketState(networkAction, ex.Message);
+            state.OnNetworkAction(state);
+        }
+
+        // Event-Loop to Allow New Clients
+        asyncResult.Item1.BeginAcceptSocket(AcceptNewClient, asyncResult);
     }
 
     /// <summary>
@@ -199,12 +193,16 @@ public static class Networking
     /// <param name="state">The SocketState to begin receiving</param>
     public static void GetData(SocketState state)
     {
-        throw new NotImplementedException();
-        // TODO: Start Receiving Data
-        //          Callback: "ReceiveCallback"
-
-        // TODO: Handle Errors 
-        //      Possibly Only Necessary in the Callback, "ReceiveCallback"
+        // Start Receiving Data
+        try
+        {
+            IAsyncResult thread = state.TheSocket.BeginReceive(state.buffer, 0, state.buffer.Length,
+                SocketFlags.None, ReceiveCallback, state);
+        }
+        catch (Exception ex)
+        {   // Handle Errors
+            ErrorState(state, ex.Message);
+        }
     }
 
     /// <summary>
@@ -226,14 +224,35 @@ public static class Networking
     /// </param>
     private static void ReceiveCallback(IAsyncResult ar)
     {
-        throw new NotImplementedException();
-        // TODO: Finalize Receive
-        // TODO: Handle Errors
-        //      Possibly Only Necessary in the Caller, "GetData"
+        SocketState state = (SocketState)ar.AsyncState!;
+        int numBytes = 0;
 
-        // TODO: Read Data
-        //SocketState socket = (SocketState)ar.AsyncState;
-        //socket.OnNetworkAction(socket);
+        // Finalize Receive
+        try
+        {
+            numBytes = state.TheSocket.EndReceive(ar);
+        }
+        catch (Exception ex)
+        // Handle Errors
+        {
+            ErrorState(state, ex.Message);
+        }
+        if (numBytes == 0)
+        {
+            ErrorState(state, "Number of bytes was 0");
+        }
+
+        // Read Data
+        string data = "";
+        lock (state.buffer)
+        {
+            data = Encoding.UTF8.GetString(state.buffer, 0, numBytes);
+        }
+        lock (state.data)
+        {
+            state.data.Append(data);
+        }
+        state.OnNetworkAction(state);
     }
 
     /// <summary>
@@ -318,4 +337,17 @@ public static class Networking
     }
 
     #endregion
+
+    /// <summary>
+    /// Sets the argued SocketState into a state of error with the argued message 
+    /// and calls its OnNetworkAction
+    /// </summary>
+    /// <param name="state">SocketState that is erroneous</param>
+    /// <param name="errorMsg">Message explaining the error</param>
+    private static void ErrorState(SocketState state, string errorMsg)
+    {
+        state.ErrorOccurred = true;
+        state.ErrorMessage = errorMsg;
+        state.OnNetworkAction(state);
+    }
 }
