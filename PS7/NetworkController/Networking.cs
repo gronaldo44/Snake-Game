@@ -53,24 +53,20 @@ public static class Networking
         // Initialize State
         Tuple<TcpListener, Action<SocketState>> asyncResult = (Tuple<TcpListener, Action<SocketState>>)ar.AsyncState!;
         Action<SocketState> networkAction = asyncResult.Item2;
-        SocketState state;
-        Socket socket;
         try
         {
             // Finalize Connection
-            socket = asyncResult.Item1.EndAcceptSocket(ar);
-            state = new SocketState(asyncResult.Item2, socket);
+            Socket socket = asyncResult.Item1.EndAcceptSocket(ar);
+            SocketState state = new SocketState(asyncResult.Item2, socket);
             // Allow User to Take Action
             state.OnNetworkAction(state);
+            // Event-Loop to Allow new Clients
+            asyncResult.Item1.BeginAcceptSocket(AcceptNewClient, asyncResult);
         }
         catch (Exception ex)
         {   // Handle Errors
-            state = new SocketState(networkAction, ex.Message);
-            state.OnNetworkAction(state);
+            ErrorState(networkAction, ex.Message);
         }
-
-        // Event-Loop to Allow New Clients
-        asyncResult.Item1.BeginAcceptSocket(AcceptNewClient, asyncResult);
     }
 
     /// <summary>
@@ -142,17 +138,15 @@ public static class Networking
         // Create a TCP/IP socket.
         Socket socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         socket.NoDelay = true;
-        SocketState state = new SocketState(toCall, socket);
         // Attempt connection
-        IAsyncResult ar = socket.BeginConnect(ipAddress, port, ConnectedCallback, state);
+        Tuple<Action<SocketState>, Socket> connectionState = new Tuple<Action<SocketState>, Socket>(toCall, socket);
+        IAsyncResult ar = socket.BeginConnect(ipAddress, port, ConnectedCallback, connectionState);
         // Handle Timeout
         ar.AsyncWaitHandle.WaitOne(3000, true);
-        if (socket.Connected)
+        if (!socket.Connected)
         {
             ErrorState(toCall, "Connection to the server timed out");
         }
-
-
     }
 
     /// <summary>
@@ -171,8 +165,17 @@ public static class Networking
     private static void ConnectedCallback(IAsyncResult ar)
     {
         // Finalize Connection
-        SocketState state = (SocketState)ar.AsyncState!;
-        state.TheSocket.EndConnect(ar);
+        Tuple<Action<SocketState>, Socket> connectionState = (Tuple<Action<SocketState>, Socket>)ar.AsyncState!;
+        try
+        {
+            connectionState.Item2.EndConnect(ar);
+        }
+        catch (Exception ex)
+        {
+            ErrorState(connectionState.Item1, ex.Message);
+            return;
+        }
+        SocketState state = new SocketState(connectionState.Item1, connectionState.Item2);
         state.OnNetworkAction(state);
     }
 
@@ -233,14 +236,15 @@ public static class Networking
             numBytes = state.TheSocket.EndReceive(ar);
         }
         catch (Exception ex)
-        // Handle Errors
-        {
-            ErrorState(state, ex.Message);
-            return;
-        }
-        if (numBytes == 0)
-        {
-            ErrorState(state, "Number of bytes was 0");
+        {   // Handle Errors
+            if (numBytes == 0)
+            {
+                ErrorState(state, "Number of bytes was 0");
+            }
+            else
+            {
+                ErrorState(state, ex.Message);
+            }
             return;
         }
 
@@ -270,8 +274,10 @@ public static class Networking
     public static bool Send(Socket socket, string data)
     {
         // Validate Socket (see if it's closed)
-        if (!socket.IsConnected())
+        if (!socket.Connected)
+        {
             return false;
+        }
 
         // Format the data to send
         byte[] msgBuffer = Encoding.UTF8.GetBytes(data);
@@ -309,12 +315,11 @@ public static class Networking
         {
             socket.EndSend(ar);
         }
-        catch(Exception)
+        catch (Exception)
         {
             // intentionally blank
         }
     }
-
 
     /// <summary>
     /// Begin the asynchronous process of sending data via BeginSend, using SendAndCloseCallback to finalize the send process.
@@ -330,8 +335,10 @@ public static class Networking
     public static bool SendAndClose(Socket socket, string data)
     {
         // If the socket is closed, don't even try to send data.
-        if(!socket.IsConnected())
+        if (!socket.Connected)
+        {
             return false;
+        }
 
         // Save the data into a buffer.
         byte[] buffer = Encoding.UTF8.GetBytes(data);   // !This could be incorrect resulting in below being wrong!
@@ -406,27 +413,4 @@ public static class Networking
         state.OnNetworkAction(state);
     }
 
-    
-}
-/// <summary>
-/// This is an Extension of the Socket class that provides a method which checks if the socket is connect.
-/// A socket is not connected if it is closed, reset, or terminated.
-/// </summary>
-internal static class SocketExtension
-{
-    /// <summary>
-    /// Checks if a socket is connected or still has bytes to read.
-    /// </summary>
-    /// <param name="theSocket"></param>
-    /// <returns></returns>
-    public static bool IsConnected(this Socket theSocket)
-    {
-        bool disconnectStatus = theSocket.Poll(1000, SelectMode.SelectRead);
-        bool hasBytes = (theSocket.Available == 0);
-        if (disconnectStatus & hasBytes)
-        {//connection is closed
-            return false;
-        }
-        return true;
-    }
 }
