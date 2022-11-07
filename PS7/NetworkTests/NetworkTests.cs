@@ -7,6 +7,12 @@ using System.Text;
 
 namespace NetworkTests
 {
+    /// <summary>
+    /// Tester class for all the Networking.cs methods.
+    /// 
+    /// Authors: Ronald Foster, Shem Snow
+    /// Last Modified on 11/11/2022
+    /// </summary>
     [TestClass]
     public class NetworkTests
     {

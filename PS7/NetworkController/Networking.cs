@@ -6,6 +6,14 @@ using System.Text;
 
 namespace NetworkUtil;
 
+/// <summary>
+/// This is the STATIC (library) class that defines networking behavior such as starting, stopping, connecting, and 
+/// sending/receiving messages. It will be used by independent Server and Client classes for the sake of separating the 
+/// concerns of network behavior from their individual funcitons.
+/// 
+/// Authors: Ronald Foster, Shem Snow
+/// Last Modified on 11/11/2022
+/// </summary>
 public static class Networking
 {
     #region Server-Side
@@ -388,6 +396,8 @@ public static class Networking
 
     #endregion
 
+    #region Helper Methods
+
     /// <summary>
     /// Sets the argued SocketState into a state of error with the argued message 
     /// and calls its OnNetworkAction
@@ -413,4 +423,5 @@ public static class Networking
         state.OnNetworkAction(state);
     }
 
+    #endregion
 }
