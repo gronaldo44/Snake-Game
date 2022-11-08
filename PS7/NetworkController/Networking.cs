@@ -349,7 +349,7 @@ public static class Networking
         }
 
         // Save the data into a buffer.
-        byte[] buffer = Encoding.UTF8.GetBytes(data);   // !This could be incorrect resulting in below being wrong!
+        byte[] buffer = Encoding.UTF8.GetBytes(data);
         // Begin Sending Data
         try
         {

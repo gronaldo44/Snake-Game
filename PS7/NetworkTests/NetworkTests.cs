@@ -494,13 +494,14 @@ namespace NetworkTests
 
         #endregion
 
+        #region Our Additional Initialization and Termination Tests
 
         [TestMethod]
-        public void InvalidIP()
+        public void ConnectToAnInvalidIP()
         {
+            // Initialize variables for connection
             bool errorOccured = false;
             bool emptyActionCalled = false;
-
             void emptyAction(SocketState x)
             {
                 errorOccured = x.ErrorOccurred;
@@ -508,9 +509,12 @@ namespace NetworkTests
                 testLocalSocketState = x;
             }
 
+            // Attempt To connect
             testListener = Networking.StartServer(emptyAction, 2112);
             Networking.ConnectToServer(emptyAction, "some Invalid host", 2112);
             NetworkTestHelper.WaitForOrTimeout(() => emptyActionCalled, NetworkTestHelper.timeout);
+
+            // Assertions
             Assert.IsTrue(emptyActionCalled);
             Assert.IsTrue(errorOccured);
         }
@@ -544,12 +548,16 @@ namespace NetworkTests
 
         }
 
+        #endregion
+
+        #region Our Additional Send and Receive Tests
+
         [TestMethod]
         public void GetInvalidData()
         {
             SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
             
-            // Set the action to do nothing
+            // Set the action to do nothing and close the sockets
             testLocalSocketState.OnNetworkAction = x => { };
             testLocalSocketState.TheSocket.Close();
             testRemoteSocketState.OnNetworkAction = x => { };
@@ -570,6 +578,7 @@ namespace NetworkTests
         {
             SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
 
+            // Set the OnNetworkAction to only return if no errors occured.
             testLocalSocketState.OnNetworkAction = (x) =>
             {
                 if (x.ErrorOccurred)
@@ -577,15 +586,16 @@ namespace NetworkTests
                 Networking.GetData(x);
             };
 
+            // Get and save the data to send
             Networking.GetData(testLocalSocketState);
-
             StringBuilder message = new StringBuilder();
             message.Append('a', (int)(SocketState.BufferSize * 7.5));
 
+            // Send it
             Networking.SendAndClose(testRemoteSocketState.TheSocket, message.ToString());
-
             NetworkTestHelper.WaitForOrTimeout(() => testLocalSocketState.GetData().Length == message.Length, NetworkTestHelper.timeout);
 
+            // Assertions: the data was received and the socket is no longer connected.
             Assert.AreEqual(message.ToString(), testLocalSocketState.GetData());
             Assert.IsFalse(testRemoteSocketState.TheSocket.Connected);
         }
@@ -593,17 +603,20 @@ namespace NetworkTests
         [TestMethod]
         public void TestSendAndCloseWithClosedSocket()
         {
+            // Set up the connections and close the socket.
             SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
-
             testRemoteSocketState.TheSocket.Close();
-
             bool sent = true;
+            
+            // Attempt to send.
             sent = Networking.SendAndClose(testRemoteSocketState.TheSocket, "");
-
             NetworkTestHelper.WaitForOrTimeout(() => !sent, NetworkTestHelper.timeout);
 
+            // The message should fail to send.
             Assert.IsFalse(sent);
         }
+
+        #endregion
     }
 
 }
