@@ -9,7 +9,7 @@ namespace NetworkUtil;
 /// <summary>
 /// This is the STATIC (library) class that defines networking behavior such as starting, stopping, connecting, and 
 /// sending/receiving messages. It will be used by independent Server and Client classes for the sake of separating the 
-/// concerns of network behavior from their individual funcitons.
+/// concerns of network behavior from their individual functions.
 /// 
 /// Authors: Ronald Foster, Shem Snow
 /// Last Modified on 11/11/2022
@@ -138,7 +138,7 @@ public static class Networking
             }
             catch (Exception)
             {
-                ErrorState(toCall, "Invalid host name or address");
+                ErrorState(toCall, $"{hostName} is an invalid host name or address");
                 return;
             }
         }

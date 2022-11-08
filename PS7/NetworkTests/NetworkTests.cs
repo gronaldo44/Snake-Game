@@ -22,6 +22,7 @@ namespace NetworkTests
         private TcpListener? testListener;
         private SocketState? testLocalSocketState, testRemoteSocketState;
 
+        #region Initialization and Termination Tests
 
         [TestInitialize]
         public void Init()
@@ -83,8 +84,10 @@ namespace NetworkTests
             remote = tempRemote;
         }
 
+        #endregion
 
-        /*** Begin Basic Connectivity Tests ***/
+        #region Basic Connectivity Tests
+
         [TestMethod]
         public void TestConnect()
         {
@@ -191,10 +194,9 @@ namespace NetworkTests
             Networking.Send(testLocalSocketState.TheSocket, "a");
         }
 
-        /*** End Basic Connectivity Tests ***/
+        #endregion
 
-
-        /*** Begin Send/Receive Tests ***/
+        #region Begin Send/Receive Tests
 
         // In these tests, "local" means the SocketState doing the sending,
         // and "remote" is the one doing the receiving.
@@ -472,10 +474,49 @@ namespace NetworkTests
             Assert.AreEqual(message.ToString(), testLocalSocketState.GetData());
         }
 
-        /*** End Send/Receive Tests ***/
+        #endregion
 
 
-        //TODO: Add more of your own tests here
+        /** 
+         * TODO: Add more of your own tests here until you have 100% code coverage
+         * 
+         * 
+         * - If a client is told to connect to an invalid IPV4 address
+         *      - Try casting it into an IP address
+         *      - Catch Format exception 
+         * 
+         * 
+         */
+
+        [TestMethod]
+        public void TestStopNetworkServer()
+        {
+            try
+            {
+                // Create a TcpListener and connect a client to it.
+                int port = 1024;
+                TcpListener listener = Networking.StartServer(s => { }, port);
+                TcpClient client = new("127.0.0.1", port);
+                Assert.IsTrue(client.Connected);
+
+                // Stop the listener. 
+                Networking.StopServer(listener);
+                // Attempting to connect clients to it will now throw an ExtendedSocketException.
+                client = new TcpClient("127.0.0.1", port);
+            }
+            catch (SocketException e) {
+
+                // ExtendedSocketException is a private class so we have to check equality via the exception's fullname.
+                string? exType = e.GetType().FullName;
+
+                // If it matches then we have an ExtendedSocketException. The test passes, otherwise it fails
+                if (exType is null || !exType.Equals("System.Net.Internals.SocketExceptionFactory+ExtendedSocketException"))
+                    throw new Exception(e.Message);
+            } // This ExtendedSocketException
+            catch (Exception) { Assert.Fail(""); }
+
+        }
+        
 
     }
 

@@ -4,6 +4,12 @@ using System.Threading;
 
 namespace NetworkUtil
 {
+    /// <summary>
+    /// Helper class for our Network Tests class.
+    /// 
+    /// Authors: University of utah School of Computing.
+    /// Last Modified on 11/08/2022
+    /// </summary>
     public class NetworkTestHelper
     {
         // 5 seconds should be more than enough time for any reasonable network operation
