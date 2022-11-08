@@ -151,9 +151,13 @@ public static class Networking
         IAsyncResult ar = socket.BeginConnect(ipAddress, port, ConnectedCallback, connectionState);
         // Handle Timeout
         ar.AsyncWaitHandle.WaitOne(3000, true);
-        if (!socket.Connected)
+
+        lock (socket)
         {
-            ErrorState(toCall, "Connection to the server timed out");
+            if (!socket.Connected)
+            {
+                ErrorState(toCall, "Connection to the server timed out");
+            }
         }
     }
 
@@ -282,10 +286,13 @@ public static class Networking
     public static bool Send(Socket socket, string data)
     {
         // Validate Socket (see if it's closed)
-        if (!socket.Connected)
+        lock(socket)
         {
-            return false;
-        }
+            if (!socket.Connected)
+            {
+                return false;
+            }
+        } 
 
         // Format the data to send
         byte[] msgBuffer = Encoding.UTF8.GetBytes(data);
@@ -343,9 +350,12 @@ public static class Networking
     public static bool SendAndClose(Socket socket, string data)
     {
         // If the socket is closed, don't even try to send data.
-        if (!socket.Connected)
+        lock (socket)
         {
-            return false;
+            if (!socket.Connected)
+            {
+                return false;
+            }
         }
 
         // Save the data into a buffer.
