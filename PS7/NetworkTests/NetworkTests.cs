@@ -2,6 +2,8 @@ using NetworkUtil;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 
@@ -192,6 +194,22 @@ namespace NetworkTests
 
             // No assertions, but the following should not result in an unhandled exception
             Networking.Send(testLocalSocketState.TheSocket, "a");
+        }
+
+        [TestMethod]
+        public void TestHostNameConnectionIPV6()
+        {
+            bool emptyActionCalled = false;
+            void emptyAction (SocketState x)
+            {
+                emptyActionCalled = true;
+                testLocalSocketState = x;
+            }
+
+            testListener = Networking.StartServer(emptyAction, 2112);
+            Networking.ConnectToServer(emptyAction, "0:0:0:0:0:0:0:1", 2112);
+            NetworkTestHelper.WaitForOrTimeout(() => emptyActionCalled, NetworkTestHelper.timeout);
+            Assert.IsTrue(emptyActionCalled);
         }
 
         #endregion
@@ -477,16 +495,25 @@ namespace NetworkTests
         #endregion
 
 
-        /** 
-         * TODO: Add more of your own tests here until you have 100% code coverage
-         * 
-         * 
-         * - If a client is told to connect to an invalid IPV4 address
-         *      - Try casting it into an IP address
-         *      - Catch Format exception 
-         * 
-         * 
-         */
+        [TestMethod]
+        public void InvalidIP()
+        {
+            bool errorOccured = false;
+            bool emptyActionCalled = false;
+
+            void emptyAction(SocketState x)
+            {
+                errorOccured = x.ErrorOccurred;
+                emptyActionCalled = true;
+                testLocalSocketState = x;
+            }
+
+            testListener = Networking.StartServer(emptyAction, 2112);
+            Networking.ConnectToServer(emptyAction, "some Invalid host", 2112);
+            NetworkTestHelper.WaitForOrTimeout(() => emptyActionCalled, NetworkTestHelper.timeout);
+            Assert.IsTrue(emptyActionCalled);
+            Assert.IsTrue(errorOccured);
+        }
 
         [TestMethod]
         public void TestStopNetworkServer()
@@ -516,8 +543,67 @@ namespace NetworkTests
             catch (Exception) { Assert.Fail(""); }
 
         }
-        
 
+        [TestMethod]
+        public void GetInvalidData()
+        {
+            SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
+            
+            // Set the action to do nothing
+            testLocalSocketState.OnNetworkAction = x => { };
+            testLocalSocketState.TheSocket.Close();
+            testRemoteSocketState.OnNetworkAction = x => { };
+            testRemoteSocketState.TheSocket.Close();
+
+            Networking.GetData(testRemoteSocketState);
+
+            // Note that waiting for data like this is *NOT* how the networking library is 
+            // intended to be used. This is only for testing purposes.
+            // Normally, you would provide an OnNetworkAction that handles the data.
+            NetworkTestHelper.WaitForOrTimeout(() => testRemoteSocketState.GetData().Length > 0, NetworkTestHelper.timeout);
+
+            Assert.IsTrue(testRemoteSocketState.ErrorOccurred);
+        }
+
+        [TestMethod]
+        public void TestSendAndClose()
+        {
+            SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
+
+            testLocalSocketState.OnNetworkAction = (x) =>
+            {
+                if (x.ErrorOccurred)
+                    return;
+                Networking.GetData(x);
+            };
+
+            Networking.GetData(testLocalSocketState);
+
+            StringBuilder message = new StringBuilder();
+            message.Append('a', (int)(SocketState.BufferSize * 7.5));
+
+            Networking.SendAndClose(testRemoteSocketState.TheSocket, message.ToString());
+
+            NetworkTestHelper.WaitForOrTimeout(() => testLocalSocketState.GetData().Length == message.Length, NetworkTestHelper.timeout);
+
+            Assert.AreEqual(message.ToString(), testLocalSocketState.GetData());
+            Assert.IsFalse(testRemoteSocketState.TheSocket.Connected);
+        }
+
+        [TestMethod]
+        public void TestSendAndCloseWithClosedSocket()
+        {
+            SetupTestConnections(true, out testListener, out testLocalSocketState, out testRemoteSocketState);
+
+            testRemoteSocketState.TheSocket.Close();
+
+            bool sent = true;
+            sent = Networking.SendAndClose(testRemoteSocketState.TheSocket, "");
+
+            NetworkTestHelper.WaitForOrTimeout(() => !sent, NetworkTestHelper.timeout);
+
+            Assert.IsFalse(sent);
+        }
     }
 
 }
