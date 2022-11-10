@@ -262,12 +262,9 @@ public static class Networking
 
         // Read Data
         string message = "";
-        lock (state.buffer)
+        lock (state)
         {
             message = Encoding.UTF8.GetString(state.buffer, 0, numBytes);
-        }
-        lock (state.data)
-        {
             state.data.Append(message);
         }
         state.OnNetworkAction(state);
