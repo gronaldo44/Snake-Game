@@ -1,4 +1,6 @@
-﻿namespace SnakeGame;
+﻿using Microsoft.UI.Xaml.Controls;
+
+namespace SnakeGame;
 using NetworkUtil;
 using Windows.Gaming.Input;
 
