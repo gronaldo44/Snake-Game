@@ -60,4 +60,9 @@
   <ItemGroup>
     <Folder Include="Resources\" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="NetworkController">
+      <HintPath>Libraries\NetworkController.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
