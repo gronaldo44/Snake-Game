@@ -3,14 +3,22 @@
 namespace SnakeGame;
 using NetworkUtil;
 using Windows.Gaming.Input;
+using TextChangedEventArgs = Microsoft.Maui.Controls.TextChangedEventArgs;
 
 public partial class MainPage : ContentPage
 {
+    //TODO: The view needs a reference to the GameController;
+
+    // Default Constructor
     public MainPage()
     {
+        // TODO: GameController = new();
         InitializeComponent();
         graphicsView.Invalidate();
     }
+
+
+    #region GUI focussing and Error Handling
 
     /// <summary>
     /// This just makes so when you click on text entries, the program focuses on them so you can type in them.
@@ -32,6 +40,34 @@ public partial class MainPage : ContentPage
         if (!connectButton.IsEnabled)
             keyboardHack.Focus();
     }
+
+    /// <summary>
+    /// The callback for when NetworkErrors occur. This method disconnects from the server and re-enables the 
+    /// controls for the user to connect.
+    /// </summary>
+    private void NetworkErrorHandler()
+    {
+        // Show the error
+        Dispatcher.Dispatch(() => DisplayAlert("Error", "Disconnected from server", "OK"));
+
+        // TODO: Do something in response to the error.
+
+
+        // Then re-enable the controlls so the user can reconnect to a new server with a new name.
+        Dispatcher.Dispatch
+            (
+                () =>
+                    {
+                        connectButton.IsEnabled = true;
+                        serverText.IsEnabled = true;
+                        nameText.IsEnabled = true;
+                    }
+            );
+    }
+
+    #endregion
+
+    #region Methods for Handling Keyboard Input
 
     /// <summary>
     /// This method is called every time the user types something into the text box that controls the snake.
@@ -59,29 +95,14 @@ public partial class MainPage : ContentPage
         {
             // TODO: Move right
         }
+
+        // Reset the text
         entry.Text = "";
     }
 
-    /// <summary>
-    /// The callback for when NetworkErrors occur. This method disconnects from the server and re-enables the 
-    /// controls for the user to connect.
-    /// </summary>
-    private void NetworkErrorHandler()
-    {
-        // Show the error
-        Dispatcher.Dispatch(() => DisplayAlert("Error", "Disconnected from server", "OK"));
+    #endregion
 
-        // Then re-enable the controlls so the user can reconnect to a new server with a new name.
-        Dispatcher.Dispatch(
-          () =>
-          {
-              connectButton.IsEnabled = true;
-              serverText.IsEnabled = true;
-              nameText.IsEnabled = true;
-          });
-    }
-
-
+    #region Methods for Handling User Clicks
     /// <summary>
     /// Event handler for the connect button
     /// We will put the connection attempt logic here in the view, instead of the controller,
@@ -152,5 +173,7 @@ public partial class MainPage : ContentPage
         "CS 3500 Fall 2022, University of Utah", "OK");
     }
 
-    
+    #endregion
+
+
 }
