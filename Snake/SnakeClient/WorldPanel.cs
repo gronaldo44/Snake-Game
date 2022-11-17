@@ -21,13 +21,28 @@ public class WorldPanel : IDrawable
     #region Images
     private IImage wallImg;
     private IImage backgroundImg;
-    //private IImage powerupsImg;
+    // TODO: private IImage powerupsImg;
     #endregion
     #region Drawing Properties
-    //private World theWorld
+    // TODO: private World theWorld
     private bool initializedForDrawing = false;
     private delegate void ObjectDrawer(object o, ICanvas canvas);
-    //private int mapSize;
+    // TODO: private int mapSize;
+
+    /// <summary>
+    /// Searches for the argued image name within this programs resources folder. Only a filename is required as 
+    /// this method will take care of the path that leads to it.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    private IImage loadImage(string name)
+    {
+        Assembly assembly = GetType().GetTypeInfo().Assembly;
+        string path = "SnakeGame.Resources.Images";
+        var service = new W2DImageLoadingService();
+        return service.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
+    }
+
     #endregion
 
 
@@ -40,13 +55,8 @@ public class WorldPanel : IDrawable
         return PlatformImage.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
     }
 #else
-    private IImage loadImage(string name)
-    {
-        Assembly assembly = GetType().GetTypeInfo().Assembly;
-        string path = "SnakeGame.Resources.Images";
-        var service = new W2DImageLoadingService();
-        return service.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
-    }
+
+
 #endif
     #endregion
 
@@ -100,7 +110,6 @@ public class WorldPanel : IDrawable
 
     private void DrawInitialWorld()
     {
-        throw new NotImplementedException();
         // TODO: draw the background
         // TODO: draw the walls
     }
@@ -138,7 +147,7 @@ public class WorldPanel : IDrawable
         throw new NotImplementedException();
         // TODO: Calculate the Snake's position
         // TODO: Calculate the snake's color
-        
+
         // TODO: Draw the snake one line-by-line
     }
 
