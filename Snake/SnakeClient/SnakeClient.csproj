@@ -61,6 +61,9 @@
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Vector2D\Vector2D.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="NetworkController">
       <HintPath>Libraries\NetworkController.dll</HintPath>
     </Reference>

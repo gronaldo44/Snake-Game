@@ -129,7 +129,7 @@ public partial class MainPage : ContentPage
         }
 
         // TODO: Attempt to connect to the server.
-        // GameController.connect();
+        // GameController.connect(hostName);
 
         // TODO: { only do the following if connection to the server was successful.
 

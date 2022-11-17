@@ -88,6 +88,8 @@ public class WorldPanel : IDrawable
 
     /// <summary>
     /// This runs whenever the drawing panel is invalidated and draws the game
+    /// 
+    /// The drawing panel should be invalidated on each frame.
     /// </summary>
     /// <param name="canvas"></param>
     /// <param name="dirtyRect"></param>
