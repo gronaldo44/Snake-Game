@@ -13,5 +13,10 @@ public class PowerUp
     public Vector2D loc { get; private set; }   // location in the world
     public bool died;   // Did the power-up die on this frame?
 
-    // TODO: constructor
+    public PowerUp(int power, Vector2D loc, bool died)
+    {
+        this.power = power;
+        this.loc = loc;
+        this.died = died;
+    }
 }

@@ -15,5 +15,17 @@ public class Snake
     public bool dc;     // Did the snake disconnect on this frame?
     public bool join;   // Did the snake join on this frame?
 
-    // TODO: constructor
+    public Snake(int snake, string name, List<Vector2D> body, Vector2D dir,
+        int score, bool died, bool alive, bool dc, bool join)
+    {
+        this.snake = snake;
+        this.name = name;
+        this.body = body;
+        this.dir = dir;
+        this.score = score;
+        this.died = died;
+        this.alive = alive;
+        this.dc = dc;
+        this.join = join;
+    }
 }

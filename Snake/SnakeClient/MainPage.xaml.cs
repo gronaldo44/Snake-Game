@@ -1,6 +1,7 @@
 ﻿using Microsoft.UI.Xaml.Controls;
 
 namespace SnakeGame;
+
 using NetworkUtil;
 using Windows.Gaming.Input;
 using TextChangedEventArgs = Microsoft.Maui.Controls.TextChangedEventArgs;
@@ -8,15 +9,17 @@ using TextChangedEventArgs = Microsoft.Maui.Controls.TextChangedEventArgs;
 public partial class MainPage : ContentPage
 {
     //TODO: The view needs a reference to the GameController;
+    GameController controller;
 
     // Default Constructor
     public MainPage()
     {
         // TODO: GameController = new();
+        this.controller = new GameController(graphicsView.Invalidate);
+
         InitializeComponent();
         graphicsView.Invalidate();
     }
-
 
     #region GUI focussing and Error Handling
 
@@ -81,19 +84,19 @@ public partial class MainPage : ContentPage
         String text = entry.Text.ToLower();
         if (text == "w")
         {
-            // TODO: Move up
+            controller.moving = "up";
         }
         else if (text == "a")
         {
-            // TODO: Move left
+            controller.moving = "left";
         }
         else if (text == "s")
         {
-            // TODO: Move down
+            controller.moving = "down";
         }
         else if (text == "d")
         {
-            // TODO: Move right
+            controller.moving = "right";
         }
 
         // Reset the text
@@ -129,7 +132,7 @@ public partial class MainPage : ContentPage
         }
 
         // TODO: Attempt to connect to the server.
-        // GameController.connect(hostName);
+        controller.Connect(serverText.Text);
 
         // TODO: { only do the following if connection to the server was successful.
 
