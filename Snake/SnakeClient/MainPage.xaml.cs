@@ -14,10 +14,14 @@ public partial class MainPage : ContentPage
     // Default Constructor
     public MainPage()
     {
-        // TODO: GameController = new();
-        this.controller = new GameController(graphicsView.Invalidate);
+        controller = new GameController(InvalidateGraphicsView);
 
         InitializeComponent();
+        graphicsView.Invalidate(); 
+    }
+
+    private void InvalidateGraphicsView()
+    {
         graphicsView.Invalidate();
     }
 
@@ -84,21 +88,21 @@ public partial class MainPage : ContentPage
         String text = entry.Text.ToLower();
         if (text == "w")
         {
-            controller.moving = "up";
+            controller.MoveCommand("up");
         }
         else if (text == "a")
         {
-            controller.moving = "left";
+            controller.MoveCommand("left");
         }
         else if (text == "s")
         {
-            controller.moving = "down";
+            controller.MoveCommand("down");
         }
         else if (text == "d")
         {
-            controller.moving = "right";
+            controller.MoveCommand("right");
         }
-
+       
         // Reset the text
         entry.Text = "";
     }
@@ -132,7 +136,7 @@ public partial class MainPage : ContentPage
         }
 
         // TODO: Attempt to connect to the server.
-        controller.Connect(serverText.Text);
+        controller.Connect(serverText.Text, nameText.Text);
 
         // TODO: { only do the following if connection to the server was successful.
 

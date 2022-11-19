@@ -3,32 +3,29 @@ using Newtonsoft.Json;
 using SnakeGame;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
-[JsonObject(MemberSerialization.OptIn)]
 /// <summary>
 /// Represents all of the objects in the world and what direction the player is moving
 /// </summary>
 public static class World
 {
-    public static List<Snake> snakes { get; private set; }      // All snakes to be drawn each frame
-    public static List<Wall> walls { get; private set; }        // All walls to be drawn on initialization
-    public static List<PowerUp> powerups { get; private set; }  // All powerups to be drawn each frame
-    [JsonProperty]
-    public static string moving { private get; set; }           // What direction the player is moving in
+    public static Dictionary<int, Snake> snakes { get; private set; }       // All snakes to be drawn each frame
+    public static Dictionary<int, Wall> walls;                              // All walls to be drawn on initialization
+    public static Dictionary<int, PowerUp> powerups { get; private set; }   // All powerups to be drawn each frame
+    public static int worldSize;                    // Size of each side of the world; the world is square
 
 
     // Construct an empty world
     static World()
     {
         // Initialize params
-        snakes = new List<Snake>();
-        powerups = new List<PowerUp>();
-        walls = new List<Wall>();
-        moving = "none";
-
-        // TODO: set the walls in the world
+        snakes = new();
+        powerups = new();
+        walls = new();
     }
 
     /// <summary>
@@ -41,56 +38,60 @@ public static class World
     {
         // Get the new position of objects in the world
         Networking.GetData(state);
-        JsonArray jsonObjs = new JsonArray(state.GetData());
+        string[] worldObjs = Regex.Split(state.GetData(), "\n");
 
         // Update the positions of objects in the world
-        foreach (JsonNode? node in jsonObjs)
+        foreach (string obj in worldObjs)
         {
-            if (node != null)
+            if (obj.Length > 1)
             {
-                char typeIdentifier = node.ToString().ElementAt(2);
+                char typeIdentifier = obj.ElementAt(2);
                 if (typeIdentifier == 's')
                 {   // Update the snakes
-                    SnakeStruct s = node.Deserialize<SnakeStruct>();
-                    snakes.Add(new Snake(s.snake, s.name, s.body, s.dir, s.score, 
-                        s.died, s.alive, s.dc, s.join));
+                    Snake? snake = JsonConvert.DeserializeObject<Snake>(obj);
+                    if (snake != null)
+                    {
+                        // only document the snake if it is still connected
+                        if (!snake.dc)
+                        {
+                            if (snakes.TryGetValue(snake.snake, out Snake? old))
+                            {   // Change to the new value
+                                snakes[snake.snake] = snake;
+                            } else
+                            {   // Add the new snake
+                                snakes.Add(snake.snake, snake);
+                            }
+                        }
+                        else
+                        {
+                            snakes.Remove(snake.snake);
+                        }
+                    }
                 }
                 else if (typeIdentifier == 'p')
                 {   // Update the powerups
-                    PowerUpStruct p = node.Deserialize<PowerUpStruct>();
-                    powerups.Add(new PowerUp(p.power, p.loc, p.died));
+                    PowerUp? powerup = JsonConvert.DeserializeObject<PowerUp>(obj);
+                    if (powerup != null)
+                    {
+                        // only document the powerup if it is still alive
+                        if (!powerup.died)
+                        {
+                            if (powerups.TryGetValue(powerup.power, out PowerUp? old))
+                            {   // change to the new value
+                                powerups[powerup.power] = powerup;
+                            }
+                            else
+                            {   // add the new powerup
+                                powerups.Add(powerup.power, powerup);
+                            }
+                        }
+                        else
+                        {
+                            powerups.Remove(powerup.power);
+                        }
+                    }
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Structure of a Snake object 
-    /// 
-    /// This structure helps with null checks
-    /// </summary>
-    private struct SnakeStruct
-    {
-        public int snake { get; private set; }      // Unique id
-        public string name { get; private set; }    // Player's name
-        public List<Vector2D> body; // represents the entire body; first index tail; last index head
-        public Vector2D dir { get; private set; }   // Snake's orientation
-        public int score;
-        public bool died;   // Did the snake die on this frame?
-        public bool alive;  // Is this snake alive right now?
-        public bool dc;     // Did the snake disconnect on this frame?
-        public bool join;   // Did the snake join on this frame?
-    }
-
-    /// <summary>
-    /// Structure of a PowerUp object
-    /// 
-    /// This structure helps iwth null checks
-    /// </summary>
-    private struct PowerUpStruct
-    {
-        public int power { get; private set; }      // unique ID
-        public Vector2D loc { get; private set; }   // location in the world
-        public bool died;   // Did the power-up die on this frame?
     }
 }

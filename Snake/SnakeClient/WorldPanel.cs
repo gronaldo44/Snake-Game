@@ -21,13 +21,7 @@ public class WorldPanel : IDrawable
     #region Images
     private IImage wallImg;
     private IImage backgroundImg;
-    // TODO: private IImage powerupsImg;
-    #endregion
-    #region Drawing Properties
-    // TODO: private World theWorld
-    private bool initializedForDrawing = false;
-    private delegate void ObjectDrawer(object o, ICanvas canvas);
-    // TODO: private int mapSize;
+    //private IImage powerupsImg;
 
     /// <summary>
     /// Searches for the argued image name within this programs resources folder. Only a filename is required as 
@@ -44,7 +38,8 @@ public class WorldPanel : IDrawable
     }
 
     #endregion
-
+    private bool initializedForDrawing = false;
+    private delegate void ObjectDrawer(object o, ICanvas canvas);
 
     #region OS Compatibility
 #if MACCATALYST
@@ -63,8 +58,9 @@ public class WorldPanel : IDrawable
     #region Initialization
 
     /// <summary>
-    /// Construct a world pannel 
+    /// Constructs a world panel with the argued player to be centered
     /// </summary>
+    /// <param name="playerId">Snake of the Player</param>
     public WorldPanel()
     {
     }
@@ -75,11 +71,12 @@ public class WorldPanel : IDrawable
     /// </summary>
     private void InitializeDrawing()
     {
-        // TODO: Set images of all objects
+        // Set images of all objects
         wallImg = loadImage("WallSprite.png");
         backgroundImg = loadImage("Background.png");
+        //powerupsImg = loadImage("PowerUpFood.png");
 
-        // TODO: Draw Walls and Background
+        // Drawing has been initialized
         initializedForDrawing = true;
     }
     #endregion
@@ -95,25 +92,38 @@ public class WorldPanel : IDrawable
     /// <param name="dirtyRect"></param>
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        throw new NotImplementedException();
         // Images must be loaded before they can be drawn
-        //if (!initializedForDrawing)
-        //{
-        //    InitializeDrawing();
-        //}
+        if (!initializedForDrawing)
+        {
+            InitializeDrawing();
+        }
 
-        // TODO: undo any leftover transformations from last frame
-        //canvas.ResetState();
+        // undo any leftover transformations from last frame
+        canvas.ResetState();
 
-        // TODO: center the view on the player
+        // center the view on the player
+        GameController.CalculateScreenLoc(out float x, out float y);
+        canvas.Translate(x, y);
 
-        // TODO: draw the objects in the world
-    }
+        // draw the objects in the world
+        foreach (var snake in World.snakes.Values)
+        {   // Draw the snakes
+            DrawObjectWithTransform(canvas, snake, snake.body.Last().GetX(), snake.body.Last().GetY(),
+                snake.body.Last().ToAngle(), SnakeDrawer);
+        }
+        foreach (var powerup in World.powerups.Values)
+        {
+            DrawObjectWithTransform(canvas, powerup, powerup.loc.GetX(), powerup.loc.GetY(),
+                powerup.loc.ToAngle(), PowerupDrawer);
+        }
 
-    private void DrawInitialWorld()
-    {
-        // TODO: draw the background
-        // TODO: draw the walls
+        // This should only happen once
+        foreach (var wall in World.walls.Values)
+        {
+            DrawObjectWithTransform(canvas, wall, wall.p1.GetX(), wall.p1.GetY(),
+                wall.p1.ToAngle(), WallDrawer);
+        }
+        DrawObjectWithTransform(canvas, backgroundImg, -1000, -1000, 0, BackgroundDrawer);
     }
 
     /// <summary>
@@ -146,7 +156,6 @@ public class WorldPanel : IDrawable
     /// <param name="canvas"></param>
     private void SnakeDrawer(object o, ICanvas canvas)
     {
-        throw new NotImplementedException();
         // TODO: Calculate the Snake's position
         // TODO: Calculate the snake's color
 
@@ -160,9 +169,53 @@ public class WorldPanel : IDrawable
     /// <param name="canvas"></param>
     private void WallDrawer(object o, ICanvas canvas)
     {
-        throw new NotImplementedException();
-        // TODO: Calculate the Wall's position
-        // TODO: Draw the wall
+        bool isForward;     // What direction the wall is being drawn in
+        bool isVertical;  // What orientation the wall is being drawn in
+        Wall w = o as Wall;
+        int numOfWallSprites;
+        double posX1 = w.p1.GetX(), posY1 = w.p1.GetY();
+        double posX2 = w.p2.GetX(), posY2 = w.p2.GetY();
+
+        // Calculate the Wall's orientation
+        isVertical = posX1 == posX2;
+        if (isVertical)
+        {   // Vertical wall
+            numOfWallSprites = (int)(posY1 - posY2) / 50;
+        }
+        else
+        {   // Horizontal wall
+            numOfWallSprites = (int)(posX1 - posX2) / 50;
+        }
+        // Calculate direction
+        isForward = numOfWallSprites < 0;
+        numOfWallSprites = Math.Abs(numOfWallSprites);
+
+        // Draw each wall sprite
+        for (int i = 0; i < numOfWallSprites; i++)
+        {
+            float x = 0, y = 0;     // tmp value
+            // Calculate top-left of this sprite
+            if (isForward)
+            {
+                x = (float)w.p1.GetX() + (isVertical ? 0 : (i * 50));
+                y = (float)w.p1.GetY() + (isVertical ? (i * 50) : 0);
+            }
+            else
+            {
+                x = (float)w.p1.GetX() - (isVertical ? 0 : (i * 50));
+                y = (float)w.p1.GetY() - (isVertical ? (i * 50) : 0);
+            }
+            canvas.DrawImage(wallImg, x, y, wallImg.Width, wallImg.Height);
+        }
+    }
+
+    private void BackgroundDrawer(object o, ICanvas canvas)
+    {
+        // Calculate top-left of image
+        float x = -(World.worldSize / 2);
+        float y = -(World.worldSize / 2);
+        // Draw the background
+        canvas.DrawImage(backgroundImg, x, y, backgroundImg.Width, backgroundImg.Height);
     }
 
     private void PowerupDrawer(object o, ICanvas canvas)
@@ -172,4 +225,6 @@ public class WorldPanel : IDrawable
         // TODO: Draw the Powerup
     }
     #endregion
+
+
 }
