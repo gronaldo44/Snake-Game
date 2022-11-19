@@ -40,6 +40,7 @@ public class WorldPanel : IDrawable
     #endregion
     private bool initializedForDrawing = false;
     private delegate void ObjectDrawer(object o, ICanvas canvas);
+    public World theWorld { private get; set; }
 
     #region OS Compatibility
 #if MACCATALYST
@@ -96,34 +97,47 @@ public class WorldPanel : IDrawable
         if (!initializedForDrawing)
         {
             InitializeDrawing();
+            return;
         }
 
         // undo any leftover transformations from last frame
         canvas.ResetState();
 
-        // center the view on the player
-        GameController.CalculateScreenLoc(out float x, out float y);
-        canvas.Translate(x, y);
-
-        // draw the objects in the world
-        foreach (var snake in World.snakes.Values)
-        {   // Draw the snakes
-            DrawObjectWithTransform(canvas, snake, snake.body.Last().GetX(), snake.body.Last().GetY(),
-                snake.body.Last().ToAngle(), SnakeDrawer);
-        }
-        foreach (var powerup in World.powerups.Values)
+        // Calculate the location of the head of the player's snake
+        float playerX = 0, playerY = 0;
+        if (theWorld.snakes.TryGetValue(theWorld.playerID, out Snake player))
         {
-            DrawObjectWithTransform(canvas, powerup, powerup.loc.GetX(), powerup.loc.GetY(),
-                powerup.loc.ToAngle(), PowerupDrawer);
+            playerX = (float)player.body.Last().GetX();
+            playerY = (float)player.body.Last().GetY();
         }
+        // center the view on the player
+        canvas.Translate(-playerX + (900 / 2), -playerY + (900 / 2));
 
-        // This should only happen once
-        foreach (var wall in World.walls.Values)
+
+
+        // draw the background
+        canvas.DrawImage(backgroundImg, -theWorld.worldSize / 2, -theWorld.worldSize / 2,
+            theWorld.worldSize, theWorld.worldSize);
+        foreach (var wall in theWorld.walls.Values)
         {
             DrawObjectWithTransform(canvas, wall, wall.p1.GetX(), wall.p1.GetY(),
                 wall.p1.ToAngle(), WallDrawer);
         }
-        DrawObjectWithTransform(canvas, backgroundImg, -1000, -1000, 0, BackgroundDrawer);
+        // draw the objects in the world
+        lock (theWorld)
+        {
+            foreach (var snake in theWorld.snakes.Values)
+            {   // Draw the snakes
+                DrawObjectWithTransform(canvas, snake, snake.body.Last().GetX(), snake.body.Last().GetY(),
+                    snake.body.Last().ToAngle(), SnakeDrawer);
+            }
+            foreach (var powerup in theWorld.powerups.Values)
+            {   // Draw the powerups
+                DrawObjectWithTransform(canvas, powerup, powerup.loc.GetX(), powerup.loc.GetY(),
+                    powerup.loc.ToAngle(), PowerupDrawer);
+            }
+        }
+
     }
 
     /// <summary>
@@ -209,18 +223,9 @@ public class WorldPanel : IDrawable
         }
     }
 
-    private void BackgroundDrawer(object o, ICanvas canvas)
-    {
-        // Calculate top-left of image
-        float x = -(World.worldSize / 2);
-        float y = -(World.worldSize / 2);
-        // Draw the background
-        canvas.DrawImage(backgroundImg, x, y, backgroundImg.Width, backgroundImg.Height);
-    }
-
     private void PowerupDrawer(object o, ICanvas canvas)
     {
-        throw new NotImplementedException();
+        //throw new NotImplementedException();
         // TODO: Calculate the Powerup's position
         // TODO: Draw the Powerup
     }

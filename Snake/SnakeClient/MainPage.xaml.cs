@@ -8,15 +8,17 @@ using TextChangedEventArgs = Microsoft.Maui.Controls.TextChangedEventArgs;
 
 public partial class MainPage : ContentPage
 {
-    //TODO: The view needs a reference to the GameController;
     GameController controller;
+    World theWorld;
 
     // Default Constructor
     public MainPage()
     {
-        controller = new GameController(InvalidateGraphicsView);
+        theWorld = new World();
+        controller = new GameController(InvalidateGraphicsView, theWorld);
 
         InitializeComponent();
+        worldPanel.theWorld = theWorld;
         graphicsView.Invalidate(); 
     }
 
