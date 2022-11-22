@@ -14,6 +14,8 @@ using System.Net;
 using Font = Microsoft.Maui.Graphics.Font;
 using SizeF = Microsoft.Maui.Graphics.SizeF;
 using System;
+using Microsoft.Maui.Graphics;
+using System.Xml.Serialization;
 
 namespace SnakeGame;
 public class WorldPanel : IDrawable
@@ -21,22 +23,7 @@ public class WorldPanel : IDrawable
     #region Images
     private IImage wallImg;
     private IImage backgroundImg;
-    //private IImage powerupsImg;
-
-    /// <summary>
-    /// Searches for the argued image name within this programs resources folder. Only a filename is required as 
-    /// this method will take care of the path that leads to it.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    private IImage loadImage(string name)
-    {
-        Assembly assembly = GetType().GetTypeInfo().Assembly;
-        string path = "SnakeGame.Resources.Images";
-        var service = new W2DImageLoadingService();
-        return service.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
-    }
-
+    private IImage powerupsImg;
     #endregion
     private bool initializedForDrawing = false;
     private delegate void ObjectDrawer(object o, ICanvas canvas);
@@ -51,9 +38,15 @@ public class WorldPanel : IDrawable
         return PlatformImage.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
     }
 #else
-
-
+    private IImage loadImage(string name)
+    {
+        Assembly assembly = GetType().GetTypeInfo().Assembly;
+        string path = "SnakeGame.Resources.Images";
+        var service = new W2DImageLoadingService();
+        return service.FromStream(assembly.GetManifestResourceStream($"{path}.{name}"));
+    }
 #endif
+
     #endregion
 
     #region Initialization
@@ -75,7 +68,7 @@ public class WorldPanel : IDrawable
         // Set images of all objects
         wallImg = loadImage("WallSprite.png");
         backgroundImg = loadImage("Background.png");
-        //powerupsImg = loadImage("PowerUpFood.png");
+        powerupsImg = loadImage("Food.png");
 
         // Drawing has been initialized
         initializedForDrawing = true;
@@ -105,19 +98,21 @@ public class WorldPanel : IDrawable
 
         // Calculate the location of the head of the player's snake
         float playerX = 0, playerY = 0;
-        if (theWorld.snakes.TryGetValue(theWorld.playerID, out Snake player))
+        lock (theWorld)
         {
-            playerX = (float)player.body.Last().GetX();
-            playerY = (float)player.body.Last().GetY();
+            if (theWorld.snakes.TryGetValue(theWorld.playerID, out Snake player))
+            {
+                playerX = (float)player.body.Last().GetX();
+                playerY = (float)player.body.Last().GetY();
+            }
         }
         // center the view on the player
         canvas.Translate(-playerX + (900 / 2), -playerY + (900 / 2));
 
-
-
         // draw the background
         canvas.DrawImage(backgroundImg, -theWorld.worldSize / 2, -theWorld.worldSize / 2,
             theWorld.worldSize, theWorld.worldSize);
+        // draw the walls
         foreach (var wall in theWorld.walls.Values)
         {
             DrawObjectWithTransform(canvas, wall, wall.p1.GetX(), wall.p1.GetY(),
@@ -128,13 +123,15 @@ public class WorldPanel : IDrawable
         {
             foreach (var snake in theWorld.snakes.Values)
             {   // Draw the snakes
-                DrawObjectWithTransform(canvas, snake, snake.body.Last().GetX(), snake.body.Last().GetY(),
-                    snake.body.Last().ToAngle(), SnakeDrawer);
+                if (snake.alive)
+                {
+                    DrawSnake(snake, canvas);
+                }
             }
             foreach (var powerup in theWorld.powerups.Values)
             {   // Draw the powerups
                 DrawObjectWithTransform(canvas, powerup, powerup.loc.GetX(), powerup.loc.GetY(),
-                    powerup.loc.ToAngle(), PowerupDrawer);
+                    0, PowerupDrawer);
             }
         }
 
@@ -164,16 +161,184 @@ public class WorldPanel : IDrawable
 
     /// <summary>
     /// A method that can be used as an ObjectDrawer delegate 
-    /// for drawing snakes
+    /// for drawing snake segments
+    /// 
+    /// Snakes have a stroke size of 10 pixels
     /// </summary>
     /// <param name="o">The snake to draw</param>
     /// <param name="canvas"></param>
-    private void SnakeDrawer(object o, ICanvas canvas)
+    private void DrawSnake(Snake s, ICanvas canvas)
     {
-        // TODO: Calculate the Snake's position
-        // TODO: Calculate the snake's color
+        canvas.StrokeSize = 10;
+        // Calculate the snake's color
+        if (s.snake % 8 == 0)
+        {
+            canvas.StrokeColor = Colors.White;
+        }
+        else if (s.snake % 7 == 0)
+        {
+            canvas.StrokeColor = Colors.Green;
+        }
+        else if (s.snake % 6 == 0)
+        {
+            canvas.StrokeColor = Colors.Black;
+        }
+        else if (s.snake % 5 == 0)
+        {
+            canvas.StrokeColor = Colors.Gold;
+        }
+        else if (s.snake % 4 == 0)
+        {
+            canvas.StrokeColor = Colors.Purple;
+        }
+        else if (s.snake % 3 == 0)
+        {
+            canvas.StrokeColor = Colors.Pink;
+        }
+        else if (s.snake % 2 == 0)
+        {
+            canvas.StrokeColor = Colors.Blue;
+        }
+        else
+        {
+            canvas.StrokeColor = Colors.Red;
+        }
 
-        // TODO: Draw the snake one line-by-line
+        // Draw the snake one segment at a time starting from the tail
+        int i = 0;
+        SnakeSegment segment = new SnakeSegment();
+        segment.Direction = "up";
+        segment.Rotation = 0;
+        while (i < s.body.Count - 1)
+        {
+            Vector2D p1 = s.body[i], p2 = s.body[++i];
+
+            // Calculate segment orientation
+            segment.IsVertical = p1.X == p2.X;
+            // Calculate segment length and direction
+            if (segment.IsVertical)
+            {
+                segment.Length = (int)(p2.Y - p1.Y);
+                if (segment.Length < 0)
+                {
+                    // Find the rotation from the last segment of the snake to this segment
+                    if (segment.Direction == "right")
+                    {   // Rotate the snake's direction 90 degrees counter-clockwise
+                        segment.Rotation += 270;
+                    }
+                    else if (segment.Direction == "down")
+                    {   // Rotate the snake's direction 180 degrees
+                        segment.Rotation += 180;
+                    }
+                    else if (segment.Direction == "left")
+                    {   // Rotate the snake's direction 90 degrees clockwise
+                        segment.Rotation += 90;
+                    }
+
+                    // This segment should be drawn going up
+                    segment.Direction = "up";
+                    segment.Rotation = 0;
+                }
+                else
+                {
+                    // Find the rotation from the last segment of the snake to this segment
+                    if (segment.Direction == "right")
+                    {   // Rotate the snake's direction 90 degrees clockwise
+                        segment.Rotation += 90;
+                    }
+                    else if (segment.Direction == "left")
+                    {   // Rotate the snake's direction 90 degrees counter-clockwise
+                        segment.Rotation += 270;
+                    }
+                    else if (segment.Direction == "up")
+                    {   // Rotate the snake's direction 180 degrees
+                        segment.Rotation += 180;
+                    }
+
+                    // This segment should be drawn going down
+                    segment.Direction = "down";
+                    segment.Length = -segment.Length;
+                }
+            }
+            else
+            {
+                segment.Length = (int)(p2.X - p1.X);
+                if (segment.Length > 0)
+                {
+                    // Find the rotation from the last segment of the snake to this segment
+                    if (segment.Direction == "down")
+                    {   // Rotate the snake's direction 90 degrees counter-clockwise
+                        segment.Rotation += 270;
+                    }
+                    else if (segment.Direction == "left")
+                    {   // Rotate the snake's direction 180 degrees
+                        segment.Rotation += 180;
+                    }
+                    else if (segment.Direction == "up")
+                    {   // Rotate the snake's direction 90 degrees clockwise
+                        segment.Rotation += 90;
+                    }
+
+                    // This segment should be drawn going right
+                    segment.Direction = "right";
+                    segment.Length = -segment.Length;
+                }
+                else
+                {
+                    // Find the rotation from the last segment of the snake to this segment
+                    if (segment.Direction == "right" || segment.Direction == null)
+                    {   // Rotate the snake's direction 180 degrees
+                        segment.Rotation += 180;
+                    }
+                    else if (segment.Direction == "down")
+                    {   // Rotate the snake's direction 90 degrees clockwise
+                        segment.Rotation += 90;
+                    }
+                    else if (segment.Direction == "up")
+                    {   // Rotate the snake's directino 90 degrees counter-clockwise
+                        segment.Rotation += 270;
+                    }
+
+                    // This segment should be drawn going left
+                    segment.Direction = "left";
+                }
+            }
+
+            // Draw the segment
+            DrawObjectWithTransform(canvas, segment.Length, p1.X, p1.Y,
+                segment.Rotation, SnakeSegmentDrawer);
+        }
+        // Draw the snake's name and score
+        canvas.DrawString(s.name + ": " + s.score, (float)s.body[i].X, (float)s.body[i].Y,
+            HorizontalAlignment.Center);
+    }
+
+    /// <summary>
+    /// Structure that represents a segment of a snake to be drawn
+    /// </summary>
+    private struct SnakeSegment
+    {
+        public int Length;
+        public bool IsVertical;
+        public string Direction;
+        public double Rotation;
+    }
+
+    /// <summary>
+    /// A method that can be used as an ObjectDrawer delegate 
+    /// for drawing segments of a snake
+    /// 
+    /// Relies on DrawObjectWithTransform to set the location and 
+    /// rotation of the segment.
+    /// 
+    /// Draws a straight segment going upwards by default.
+    /// </summary>
+    /// <param name="o"></param>
+    /// <param name="canvas"></param>
+    private void SnakeSegmentDrawer(object o, ICanvas canvas)
+    {
+        int snakeSegmentLength = (int)o;
+        canvas.DrawLine(0, 0, 0, snakeSegmentLength);
     }
 
     /// <summary>
@@ -183,53 +348,21 @@ public class WorldPanel : IDrawable
     /// <param name="canvas"></param>
     private void WallDrawer(object o, ICanvas canvas)
     {
-        bool isForward;     // What direction the wall is being drawn in
-        bool isVertical;  // What orientation the wall is being drawn in
-        Wall w = o as Wall;
-        int numOfWallSprites;
-        double posX1 = w.p1.GetX(), posY1 = w.p1.GetY();
-        double posX2 = w.p2.GetX(), posY2 = w.p2.GetY();
-
-        // Calculate the Wall's orientation
-        isVertical = posX1 == posX2;
-        if (isVertical)
-        {   // Vertical wall
-            numOfWallSprites = (int)(posY1 - posY2) / 50;
-        }
-        else
-        {   // Horizontal wall
-            numOfWallSprites = (int)(posX1 - posX2) / 50;
-        }
-        // Calculate direction
-        isForward = numOfWallSprites < 0;
-        numOfWallSprites = Math.Abs(numOfWallSprites);
-
-        // Draw each wall sprite
-        for (int i = 0; i < numOfWallSprites; i++)
-        {
-            float x = 0, y = 0;     // tmp value
-            // Calculate top-left of this sprite
-            if (isForward)
-            {
-                x = (float)w.p1.GetX() + (isVertical ? 0 : (i * 50));
-                y = (float)w.p1.GetY() + (isVertical ? (i * 50) : 0);
-            }
-            else
-            {
-                x = (float)w.p1.GetX() - (isVertical ? 0 : (i * 50));
-                y = (float)w.p1.GetY() - (isVertical ? (i * 50) : 0);
-            }
-            canvas.DrawImage(wallImg, x, y, wallImg.Width, wallImg.Height);
-        }
+        // TODO: implement
     }
 
+    /// <summary>
+    /// A method that can be used as an ObjectDrawer for 
+    /// drawing powerups
+    /// 
+    /// Powerups are 16x16 pixels
+    /// </summary>
+    /// <param name="o"></param>
+    /// <param name="canvas"></param>
     private void PowerupDrawer(object o, ICanvas canvas)
     {
-        //throw new NotImplementedException();
-        // TODO: Calculate the Powerup's position
-        // TODO: Draw the Powerup
+        canvas.DrawImage(powerupsImg, 0, 0, 16, 16);
     }
     #endregion
-
 
 }

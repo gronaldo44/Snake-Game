@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(TargetFrameworks);net6.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(TargetFrameworks);net6.0-maccatalyst</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
 		<OutputType>Exe</OutputType>
 		<RootNamespace>SnakeGame</RootNamespace>
@@ -29,16 +29,16 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-	  <MtouchLink>SdkOnly</MtouchLink>
+		<MtouchLink>SdkOnly</MtouchLink>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <MtouchLink>SdkOnly</MtouchLink>
+		<MtouchLink>SdkOnly</MtouchLink>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0-windows10.0.19041.0|AnyCPU'">
-	  <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0-windows10.0.19041.0|AnyCPU'">
-	  <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	</PropertyGroup>
 	<ItemGroup>
 		<!-- App Icon -->
@@ -55,24 +55,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="MainPage.xaml">
-	    <SubType></SubType>
-	  </MauiXaml>
+		<MauiXaml Update="MainPage.xaml">
+			<SubType></SubType>
+		</MauiXaml>
 	</ItemGroup>
 	<ItemGroup>
-	  <EmbeddedResource Include="Resources\Images\WallSprite.png" />
-	  <EmbeddedResource Include="Resources\Images\Background.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Resources\" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GameController\GameController.csproj" />
-    <ProjectReference Include="..\Vector2D\Vector2D.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="NetworkController">
-      <HintPath>Libraries\NetworkController.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+		<EmbeddedResource Include="Resources\Images\WallSprite.png" />
+		<EmbeddedResource Include="Resources\Images\Background.png" />
+		<EmbeddedResource Include="Resources\Images\Food.png"/>
+	</ItemGroup>
+	<ItemGroup>
+		<Folder Include="Resources\" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\GameController\GameController.csproj" />
+		<ProjectReference Include="..\Vector2D\Vector2D.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="NetworkController">
+			<HintPath>Libraries\NetworkController.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 </Project>
