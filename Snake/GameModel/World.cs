@@ -40,9 +40,7 @@ public class World
     {
         // Get the new position of objects in the world
         Networking.GetData(state);
-        string data = state.GetData();      // TODO: delete
-        //Debug.WriteLine(data);
-        string[] worldObjs = Regex.Split(data, "\n");
+        string[] worldObjs = Regex.Split(state.GetData(), "\n");
 
         // Update the positions of objects in the world
         lock (this)
@@ -66,7 +64,14 @@ public class World
                     // Document the snake in the world
                     if (snakes.ContainsKey(s.snake))
                     {
-                        snakes[s.snake] = s;
+                        if (s.dc)
+                        {   // Removes disconnected snakes
+                            snakes.Remove(s.snake);
+                        }
+                        else
+                        {
+                            snakes[s.snake] = s;
+                        }
                     } else
                     {
                         snakes.Add(s.snake, s);
@@ -81,7 +86,14 @@ public class World
                     // Document the powerup in the world
                     if (powerups.ContainsKey(p.power))
                     {
-                        powerups[p.power] = p;
+                        if (p.died)
+                        {   // Remove collected powerups
+                            powerups.Remove(p.power);
+                        }
+                        else
+                        {
+                            powerups[p.power] = p;
+                        }
                     } else
                     {
                         powerups.Add(p.power, p);
