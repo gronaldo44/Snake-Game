@@ -1,31 +1,33 @@
-﻿using SnakeGame;
+﻿using Newtonsoft.Json;
+using SnakeGame;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
+[JsonObject(MemberSerialization.OptIn)]
 public class Snake
-{   // TODO: JSON Compatability
-    public int snake { get; private set; }      // Unique id
-    public string name { get; private set; }    // Player's name
-    public List<Vector2D> body; // represents the entire body; first index tail; last index head
-    public Vector2D dir { get; private set; }   // Snake's orientation
+{
+    [JsonProperty(PropertyName = "snake")]
+    public int id { get; private set; }      // Unique id
+    [JsonProperty(PropertyName = "body")]
+    public List<Vector2D>? body { get; private set; }    // represents the entire body; first index tail; last index head
+    [JsonProperty(PropertyName = "dir")]
+    public Vector2D? direction { get; private set; }   // Snake's orientation
+    [JsonProperty(PropertyName = "name")]
+    public string name { get; private set; } = "";  // Player's name
+    [JsonProperty(PropertyName = "score")]
     public int score;
+    [JsonProperty(PropertyName = "died")]
     public bool died;   // Did the snake die on this frame?
+    [JsonProperty(PropertyName = "alive")]
     public bool alive;  // Is this snake alive right now?
+    [JsonProperty(PropertyName = "dc")]
     public bool dc;     // Did the snake disconnect on this frame?
+    [JsonProperty(PropertyName = "join")]
     public bool join;   // Did the snake join on this frame?
 
-    public Snake(int snake, string name, List<Vector2D> body, Vector2D dir,
-        int score, bool died, bool alive, bool dc, bool join)
+    public override string ToString()
     {
-        this.snake = snake;
-        this.name = name;
-        this.body = body;
-        this.dir = dir;
-        this.score = score;
-        this.died = died;
-        this.alive = alive;
-        this.dc = dc;
-        this.join = join;
+        return JsonConvert.SerializeObject(this);
     }
 }

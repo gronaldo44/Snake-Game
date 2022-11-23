@@ -1,6 +1,8 @@
-﻿using SnakeGame;
+﻿using Newtonsoft.Json;
+using SnakeGame;
 using System;
 
+[JsonObject(MemberSerialization.OptIn)]
 /// <summary>
 /// Consumable item that does something to snakes when 
 /// they collide with it.
@@ -8,15 +10,16 @@ using System;
 /// Powerups are 16x16 pixels
 /// </summary>
 public class PowerUp
-{   // TODO: JSON Compatability
-    public int power { get; private set; }      // unique ID
-    public Vector2D loc { get; private set; }   // location in the world
+{
+    [JsonProperty(PropertyName = "power")]
+    public int id { get; private set; }      // unique ID
+    [JsonProperty(PropertyName = "loc")]
+    public Vector2D? loc { get; private set; }   // location in the world
+    [JsonProperty(PropertyName = "died")]
     public bool died;   // Did the power-up die on this frame?
 
-    public PowerUp(int power, Vector2D loc, bool died)
+    public override string ToString()
     {
-        this.power = power;
-        this.loc = loc;
-        this.died = died;
+        return JsonConvert.SerializeObject(this);
     }
 }
