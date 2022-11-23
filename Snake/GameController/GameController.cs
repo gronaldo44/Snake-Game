@@ -10,9 +10,9 @@ using Newtonsoft.Json.Linq;
 /// </summary>
 public class GameController
 {
-    #region Server Params
+    #region View Controls
     private Action UpdateArrived;       // Notifies the view that an update came from the server
-    private SocketState connection;     // This client's connection to the server  
+    private Action<SocketState> ErrorOccurred;             // Did this client succesfully connect?
     #endregion
     #region Client Params
     private string playerName;
@@ -26,11 +26,11 @@ public class GameController
     /// <summary>
     /// Creates a game controller with the argued method for drawing the world
     /// </summary>
-    /// <param name="draw"></param>
-    public GameController(Action draw, World w)
+    /// <param name="updateArrived"></param>
+    public GameController(Action updateArrived, Action<SocketState> errorOccurred, World w)
     {
-        UpdateArrived = draw;
-        connection = new SocketState((s) => { }, "no connection made");
+        UpdateArrived = updateArrived;
+        ErrorOccurred = errorOccurred;
         moving = "none";
         playerName = "";    // temporary value
         theWorld = w;
@@ -39,6 +39,8 @@ public class GameController
 
     /// <summary>
     /// Connects to the argued server's host name on port 11000
+    /// 
+    /// Returns whether or not the connection was succesful
     /// </summary>
     /// <param name="hostName"></param>
     public void Connect(string hostName, string playerName)
@@ -67,6 +69,12 @@ public class GameController
     /// <param name="state"></param>
     private void OnConnection(SocketState state)
     {
+        if (state.ErrorOccurred)
+        {
+            ErrorOccurred.Invoke(state);
+            return;
+        }
+
         if (Networking.Send(state.TheSocket, playerName))
         {
             state.OnNetworkAction = InitializeWorld;
@@ -126,7 +134,8 @@ public class GameController
         }
 
         // Update the values in the world
-        theWorld.UpdateWorld(state);
+        Networking.GetData(state);
+        theWorld.UpdateWorld(state.GetData());
         // Notify the View that an update has arrived from the server
         UpdateArrived.Invoke();
     }

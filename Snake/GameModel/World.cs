@@ -36,16 +36,15 @@ public class World
     /// Should only be called by the game controller
     /// </summary>
     /// <param name="data"></param>
-    public void UpdateWorld(SocketState state)
+    public void UpdateWorld(string raw)
     {
         // Get the new position of objects in the world
-        Networking.GetData(state);
-        string[] worldObjs = Regex.Split(state.GetData(), "\n");
+        string[] data = Regex.Split(raw, "\n");
 
         // Update the positions of objects in the world
         lock (this)
         {
-            foreach (string str in worldObjs)
+            foreach (string str in data)
             {
                 // Skip non-json strings
                 if (!str.StartsWith('{') && !str.EndsWith('}'))
@@ -62,19 +61,19 @@ public class World
                 {
                     Snake s = JsonConvert.DeserializeObject<Snake>(str)!;
                     // Document the snake in the world
-                    if (snakes.ContainsKey(s.snake))
+                    if (snakes.ContainsKey(s.id))
                     {
                         if (s.dc)
                         {   // Removes disconnected snakes
-                            snakes.Remove(s.snake);
+                            snakes.Remove(s.id);
                         }
                         else
                         {
-                            snakes[s.snake] = s;
+                            snakes[s.id] = s;
                         }
                     } else
                     {
-                        snakes.Add(s.snake, s);
+                        snakes.Add(s.id, s);
                     }
                     continue;
                 }
@@ -84,19 +83,15 @@ public class World
                 {
                     PowerUp p = JsonConvert.DeserializeObject<PowerUp>(str)!;
                     // Document the powerup in the world
-                    if (powerups.ContainsKey(p.power))
+                    if (!powerups.ContainsKey(p.id))
+                    {
+                        powerups.Add(p.id, p);
+                    } else
                     {
                         if (p.died)
                         {   // Remove collected powerups
-                            powerups.Remove(p.power);
+                            powerups.Remove(p.id);
                         }
-                        else
-                        {
-                            powerups[p.power] = p;
-                        }
-                    } else
-                    {
-                        powerups.Add(p.power, p);
                     }
                     continue;
                 }
