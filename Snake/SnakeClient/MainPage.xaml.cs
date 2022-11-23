@@ -15,7 +15,8 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         theWorld = new World();
-        controller = new GameController(InvalidateGraphicsView, theWorld);
+        controller = new GameController(InvalidateGraphicsView, NetworkErrorHandler,
+            theWorld);
 
         InitializeComponent();
         worldPanel.theWorld = theWorld;
@@ -51,16 +52,15 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
-    /// The callback for when NetworkErrors occur. This method disconnects from the server and re-enables the 
-    /// controls for the user to connect.
+    /// Dispatch an error message to the main thread to be displayed
+    /// 
+    /// The error message is based on the state of our connection.
     /// </summary>
-    private void NetworkErrorHandler()
+    /// <param name="state"></param>
+    private void NetworkErrorHandler(SocketState state)
     {
         // Show the error
-        Dispatcher.Dispatch(() => DisplayAlert("Error", "Disconnected from server", "OK"));
-
-        // TODO: Do something in response to the error.
-
+        Dispatcher.Dispatch(() => DisplayAlert("Error", state.ErrorMessage, "OK"));
 
         // Then re-enable the controlls so the user can reconnect to a new server with a new name.
         Dispatcher.Dispatch
@@ -68,6 +68,8 @@ public partial class MainPage : ContentPage
                 () =>
                     {
                         connectButton.IsEnabled = true;
+                        connectButton.BackgroundColor = Color.Parse("#512bd4");
+                        connectButton.TextColor = Colors.White;
                         serverText.IsEnabled = true;
                         nameText.IsEnabled = true;
                     }
@@ -137,19 +139,15 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        // TODO: Attempt to connect to the server.
+        // Attempt to connect to the server.
         controller.Connect(serverText.Text, nameText.Text);
-
-        // TODO: { only do the following if connection to the server was successful.
 
         // Disable the connect button and text entries so the user can't connect again or change the server or their name.
         connectButton.IsEnabled = false;
+        connectButton.TextColor = Colors.Black;
+        connectButton.BackgroundColor = Colors.Grey;
         serverText.IsEnabled = false;
         nameText.IsEnabled = false;
-
-        // TODO: }
-
-        
 
         keyboardHack.Focus();
     }

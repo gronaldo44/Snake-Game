@@ -171,31 +171,31 @@ public class WorldPanel : IDrawable
     {
         canvas.StrokeSize = 10;
         // Calculate the snake's color
-        if (s.snake % 8 == 0)
+        if (s.id % 8 == 0)
         {
             canvas.StrokeColor = Colors.White;
         }
-        else if (s.snake % 7 == 0)
+        else if (s.id % 7 == 0)
         {
             canvas.StrokeColor = Colors.Green;
         }
-        else if (s.snake % 6 == 0)
+        else if (s.id % 6 == 0)
         {
             canvas.StrokeColor = Colors.Black;
         }
-        else if (s.snake % 5 == 0)
+        else if (s.id % 5 == 0)
         {
             canvas.StrokeColor = Colors.Gold;
         }
-        else if (s.snake % 4 == 0)
+        else if (s.id % 4 == 0)
         {
             canvas.StrokeColor = Colors.Purple;
         }
-        else if (s.snake % 3 == 0)
+        else if (s.id % 3 == 0)
         {
             canvas.StrokeColor = Colors.Pink;
         }
-        else if (s.snake % 2 == 0)
+        else if (s.id % 2 == 0)
         {
             canvas.StrokeColor = Colors.Blue;
         }
