@@ -112,24 +112,25 @@ public class WorldPanel : IDrawable
         // draw the background
         canvas.DrawImage(backgroundImg, -theWorld.worldSize / 2, -theWorld.worldSize / 2,
             theWorld.worldSize, theWorld.worldSize);
-        // draw the walls
-        foreach (var wall in theWorld.walls.Values)
-        {
-            DrawObjectWithTransform(canvas, wall, wall.p1.GetX(), wall.p1.GetY(),
-                wall.p1.ToAngle(), WallDrawer);
-        }
         // draw the objects in the world
         lock (theWorld)
         {
+            // draw the walls
+            foreach (var wall in theWorld.walls.Values)
+            {
+                DrawWall(wall, canvas);
+            }
+            // Draw the snakes
             foreach (var snake in theWorld.snakes.Values)
-            {   // Draw the snakes
+            {
                 if (snake.alive)
                 {
                     DrawSnake(snake, canvas);
                 }
             }
+            // Draw the powerups
             foreach (var powerup in theWorld.powerups.Values)
-            {   // Draw the powerups
+            {
                 DrawObjectWithTransform(canvas, powerup, powerup.loc.GetX(), powerup.loc.GetY(),
                     0, PowerupDrawer);
             }
@@ -160,8 +161,7 @@ public class WorldPanel : IDrawable
     }
 
     /// <summary>
-    /// A method that can be used as an ObjectDrawer delegate 
-    /// for drawing snake segments
+    /// Draws a snake segment by segment
     /// 
     /// Snakes have a stroke size of 10 pixels
     /// </summary>
@@ -346,9 +346,68 @@ public class WorldPanel : IDrawable
     /// </summary>
     /// <param name="o"></param>
     /// <param name="canvas"></param>
-    private void WallDrawer(object o, ICanvas canvas)
+    private void DrawWall(Wall w, ICanvas canvas)
     {
-        // TODO: implement
+        bool isVertical;
+        int numOfSprites = 0;
+        double rotation, x, y;
+
+        // Calculate the orientation of the wall
+        isVertical = w.p1.X == w.p2.X;
+        // Calculate the length of the wall
+        if (isVertical)
+        {
+            numOfSprites = (int)Math.Abs(w.p1.Y - w.p2.Y) / 50;
+        } else
+        {
+            numOfSprites = (int)Math.Abs(w.p1.X - w.p2.X) / 50;
+        }
+
+        // Draw the wall one sprite at a time
+        if (isVertical)
+        {
+            for (int i = 0; i < numOfSprites; i++)
+            {
+                // Calculate the position of the sprite
+                x = w.p1.X - 25;
+                y = w.p1.Y + (50 * i);
+                rotation = 270;
+                // Draw the sprite
+                DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < numOfSprites; i++)
+            {
+                // Calculate the position of the sprite
+                x = w.p1.X + (50 * i);
+                y = w.p1.Y - 25;
+                rotation = 0;
+                // Draw the sprite
+                DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
+            }
+        }
+
+        // FIX THE BASE METHOD: drawobjectwithtransform(..., ..., x, y, ..., ...);
+        // FIX numOfSprites: we are one short on many walls (maybe all?)
+        // Figure out where p1 and p2 are exactly: top-left wall was lifted
+    }
+
+    /// <summary>
+    /// A method that can be used as an ObjectDrawer for 
+    /// drawing wall sprites.
+    /// 
+    /// Wall sprites are 50x50 pixels.
+    /// 
+    /// Draws from the top-left going down 50 and right 50 
+    /// from the center of the canvas.
+    /// </summary>
+    /// <param name="o"></param>
+    /// <param name="canvas"></param>
+    private void WallSpriteDrawer(object o, ICanvas canvas)
+    {
+        canvas.DrawImage(wallImg, 0, 0, 50, 50);
     }
 
     /// <summary>
