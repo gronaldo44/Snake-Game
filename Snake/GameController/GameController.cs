@@ -75,8 +75,10 @@ public class GameController
             return;
         }
 
+        // Send the player name to the server
         if (Networking.Send(state.TheSocket, playerName))
         {
+            // Receive the playerID, worldSize, and Walls
             state.OnNetworkAction = InitializeWorld;
             Networking.GetData(state);
         }
@@ -107,14 +109,15 @@ public class GameController
                 if (token != null)
                 {   // Document the wall in the world
                     Wall w = JsonConvert.DeserializeObject<Wall>(str)!;
-                    theWorld.walls.Add(w.wall, w);
+                    theWorld.walls.Add(w.id, w);
                 }
             }
         }
         // Notify the View that the walls have arrived from the server
         UpdateArrived.Invoke();
+        state.RemoveData(0, raw.Length - 1);
 
-        // Update on each frame
+        // Allow the server to start updating the world
         state.OnNetworkAction = OnFrame;
         Networking.GetData(state);
     }
@@ -135,7 +138,9 @@ public class GameController
 
         // Update the values in the world
         Networking.GetData(state);
-        theWorld.UpdateWorld(state.GetData());
+        string raw = state.GetData();
+        state.RemoveData(0, raw.Length - 2);
+        theWorld.UpdateWorld(raw);
         // Notify the View that an update has arrived from the server
         UpdateArrived.Invoke();
     }
