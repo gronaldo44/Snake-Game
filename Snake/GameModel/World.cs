@@ -38,63 +38,80 @@ public class World
     /// <param name="data"></param>
     public void UpdateWorld(string raw)
     {
-        // Get the new position of objects in the world
+        List<Snake> tmpSnakes = new();
+        List<PowerUp> tmpPowerups = new();
         string[] data = Regex.Split(raw, "\n");
+
+        // Parse the data
+        foreach (string str in data)
+        {
+            // Skip non-JSON strings
+            if (!(str.StartsWith("{") && str.EndsWith("}")))
+            {
+                continue;
+            }
+
+            // Parse the string into a JSON object
+            JObject obj = JObject.Parse(str);
+            JToken? token;
+            // Check if this object is a snake
+            token = obj["snake"];
+            if (token != null)
+            {
+                // Deserialize the snake
+                Snake s = JsonConvert.DeserializeObject<Snake>(str)!;
+                // Document the snake in a temporary list
+                tmpSnakes.Add(s);
+                continue;
+            }
+            // Check if this object is a powerup
+            token = obj["power"];
+            if (token != null)
+            {
+                // Deserialize the powerup
+                PowerUp p = JsonConvert.DeserializeObject<PowerUp>(str)!;
+                // Document the powerup in a temporary list
+                tmpPowerups.Add(p);
+            }
+        }
 
         // Update the positions of objects in the world
         lock (this)
         {
-            foreach (string str in data)
+            // Document the snakes in the world
+            foreach (Snake s in tmpSnakes)
             {
-                // Skip non-json strings
-                if (!str.StartsWith('{') && !str.EndsWith('}'))
+                if (snakes.ContainsKey(s.id))
                 {
-                    continue;
-                }
-
-                JObject obj = JObject.Parse(str);
-                JToken? token;
-
-                // Check if this object is a snake
-                token = obj["snake"];
-                if (token != null)
-                {
-                    Snake s = JsonConvert.DeserializeObject<Snake>(str)!;
-                    // Document the snake in the world
-                    if (snakes.ContainsKey(s.id))
-                    {
-                        if (s.dc)
-                        {   // Removes disconnected snakes
-                            snakes.Remove(s.id);
-                        }
-                        else
-                        {
-                            snakes[s.id] = s;
-                        }
-                    } else
-                    {
-                        snakes.Add(s.id, s);
+                    if (s.dc)
+                    {   // Removes disconnected snakes
+                        snakes.Remove(s.id);
                     }
-                    continue;
-                }
-                // Check if this object is a powerup
-                token = obj["power"];
-                if (token != null)
-                {
-                    PowerUp p = JsonConvert.DeserializeObject<PowerUp>(str)!;
-                    // Document the powerup in the world
-                    if (!powerups.ContainsKey(p.id))
+                    else
                     {
-                        powerups.Add(p.id, p);
-                    } else
-                    {
-                        if (p.died)
-                        {   // Remove collected powerups
-                            powerups.Remove(p.id);
-                        }
+                        snakes[s.id] = s;
                     }
-                    continue;
                 }
+                else
+                {
+                    snakes.Add(s.id, s);
+                }
+            }
+            // Document the powerups in the world
+            foreach (PowerUp p in tmpPowerups)
+            {
+                if (!powerups.ContainsKey(p.id))
+                {
+                    powerups.Add(p.id, p);
+                }
+                else
+                {
+                    if (p.died)
+                    {   // Remove collected powerups
+                        powerups.Remove(p.id);
+                    }
+                }
+                continue;
             }
         }
     }
