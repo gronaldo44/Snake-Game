@@ -1,6 +1,9 @@
-﻿using SnakeGame;
+﻿using Newtonsoft.Json;
+using SnakeGame;
 using System;
+using System.Text.Json.Serialization;
 
+[JsonObject(MemberSerialization.OptIn)]
 /// <summary>
 /// Walls will always be axis-aligned.
 /// 
@@ -9,15 +12,12 @@ using System;
 /// Walls can overlap and intersect each other.
 /// </summary>
 public class Wall
-{  
-    public int wall { get; private set; }           // Wall's unique ID
-    public Vector2D p1 { get; private set; }        // endpoint
-    public Vector2D p2 { get; private set; }        // endpoint
+{
+    [JsonProperty(PropertyName = "wall")]
+    public int id { get; private set; }           // Wall's unique ID
+    [JsonProperty(PropertyName = "p1")]
+    public Vector2D p1 { get; private set; } = new();       // endpoint
+    [JsonProperty(PropertyName = "p2")]
+    public Vector2D p2 { get; private set; } = new();       // endpoint
 
-    public Wall(int wall, Vector2D p1, Vector2D p2)
-    {
-        this.wall = wall;
-        this.p1 = p1;
-        this.p2 = p2;
-    }
 }

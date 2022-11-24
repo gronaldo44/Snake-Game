@@ -10,9 +10,9 @@ public class Snake
     [JsonProperty(PropertyName = "snake")]
     public int id { get; private set; }      // Unique id
     [JsonProperty(PropertyName = "body")]
-    public List<Vector2D>? body { get; private set; }    // represents the entire body; first index tail; last index head
+    public List<Vector2D> body { get; private set; } = new();    // represents the entire body; first index tail; last index head
     [JsonProperty(PropertyName = "dir")]
-    public Vector2D? direction { get; private set; }   // Snake's orientation
+    public Vector2D direction { get; private set; } = new();  // Snake's orientation
     [JsonProperty(PropertyName = "name")]
     public string name { get; private set; } = "";  // Player's name
     [JsonProperty(PropertyName = "score")]

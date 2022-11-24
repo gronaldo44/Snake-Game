@@ -14,7 +14,7 @@ public class PowerUp
     [JsonProperty(PropertyName = "power")]
     public int id { get; private set; }      // unique ID
     [JsonProperty(PropertyName = "loc")]
-    public Vector2D? loc { get; private set; }   // location in the world
+    public Vector2D loc { get; private set; } = new();  // location in the world
     [JsonProperty(PropertyName = "died")]
     public bool died;   // Did the power-up die on this frame?
 
