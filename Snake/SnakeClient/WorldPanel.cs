@@ -392,9 +392,6 @@ public class WorldPanel : IDrawable
                 DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
             }
         }
-
-        // TODO: FIX THE BASE METHOD: drawobjectwithtransform(..., ..., x, y, ..., ...);
-        // TODO: FIX numOfSprites: we are one short on many walls (maybe all?)
     }
 
     /// <summary>

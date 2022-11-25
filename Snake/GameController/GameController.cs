@@ -87,7 +87,7 @@ public class GameController
     private void InitializeWorld(SocketState state)
     {
         // Document the player ID and world size
-        string raw = state.GetData();      // TODO: delete
+        string raw = state.GetData();
         string[] data = Regex.Split(raw, "\n");
         theWorld.playerID = int.Parse(data[0]);
         theWorld.worldSize = int.Parse(data[1]);
