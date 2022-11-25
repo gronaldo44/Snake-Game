@@ -16,6 +16,8 @@ using SizeF = Microsoft.Maui.Graphics.SizeF;
 using System;
 using Microsoft.Maui.Graphics;
 using System.Xml.Serialization;
+using System.Security.Cryptography;
+using Microsoft.UI.Xaml.Controls;
 
 namespace SnakeGame;
 public class WorldPanel : IDrawable
@@ -355,33 +357,35 @@ public class WorldPanel : IDrawable
         // Calculate the orientation of the wall
         isVertical = w.p1.X == w.p2.X;
         // Calculate the length of the wall
-        if (isVertical)
-        {
-            numOfSprites = (int)Math.Abs(w.p1.Y - w.p2.Y) / 50;
-        } else
-        {
-            numOfSprites = (int)Math.Abs(w.p1.X - w.p2.X) / 50;
-        }
+        numOfSprites = isVertical ? (int)Math.Abs(w.p1.Y - w.p2.Y) / 50 : (int)Math.Abs(w.p1.X - w.p2.X) / 50;
 
         // Draw the wall one sprite at a time
         if (isVertical)
         {
+            // Determine the direction to draw the wall.
+            bool drawDown = w.p1.Y < w.p2.Y;
+
+            // Draw the wall
             for (int i = 0; i < numOfSprites; i++)
             {
                 // Calculate the position of the sprite
                 x = w.p1.X - 25;
-                y = w.p1.Y + (50 * i);
+                y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i) + 25;
                 rotation = 270;
                 // Draw the sprite
                 DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
             }
         }
-        else
+        else // It's horizontal
         {
+            // Determine the direction to draw the wall
+            bool drawRight = w.p1.X < w.p2.X;
+
+            // Draw the wall
             for (int i = 0; i < numOfSprites; i++)
             {
                 // Calculate the position of the sprite
-                x = w.p1.X + (50 * i);
+                x = (drawRight? w.p1.X + (50 * i) : w.p1.X - (50 * i)) - 25;
                 y = w.p1.Y - 25;
                 rotation = 0;
                 // Draw the sprite
@@ -389,9 +393,8 @@ public class WorldPanel : IDrawable
             }
         }
 
-        // FIX THE BASE METHOD: drawobjectwithtransform(..., ..., x, y, ..., ...);
-        // FIX numOfSprites: we are one short on many walls (maybe all?)
-        // Figure out where p1 and p2 are exactly: top-left wall was lifted
+        // TODO: FIX THE BASE METHOD: drawobjectwithtransform(..., ..., x, y, ..., ...);
+        // TODO: FIX numOfSprites: we are one short on many walls (maybe all?)
     }
 
     /// <summary>
