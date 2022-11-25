@@ -357,7 +357,7 @@ public class WorldPanel : IDrawable
         // Calculate the orientation of the wall
         isVertical = w.p1.X == w.p2.X;
         // Calculate the length of the wall
-        numOfSprites = isVertical ? (int)Math.Abs(w.p1.Y - w.p2.Y) / 50 : (int)Math.Abs(w.p1.X - w.p2.X) / 50;
+        numOfSprites = 1 + (isVertical ? (int)Math.Abs(w.p1.Y - w.p2.Y) / 50 : (int)Math.Abs(w.p1.X - w.p2.X) / 50);
 
         // Draw the wall one sprite at a time
         if (isVertical)
