@@ -20,6 +20,10 @@ using System.Security.Cryptography;
 using Microsoft.UI.Xaml.Controls;
 
 namespace SnakeGame;
+/// <summary>
+/// The World Panel is responsible for drawing onto the panel (the window) which the game is played on.
+/// It does not interract with the user in any way. It simply draws images when prompted by other parts of the program.
+/// </summary>
 public class WorldPanel : IDrawable
 {
     #region Images

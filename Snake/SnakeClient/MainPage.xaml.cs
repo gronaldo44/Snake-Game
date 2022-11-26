@@ -6,6 +6,10 @@ using NetworkUtil;
 using Windows.Gaming.Input;
 using TextChangedEventArgs = Microsoft.Maui.Controls.TextChangedEventArgs;
 
+/// <summary>
+/// The Main Page is the interface between the user of this program (a human) and the program that controls it.
+/// It handles things such as button clicks and keyboard inputs.
+/// </summary>
 public partial class MainPage : ContentPage
 {
     GameController controller;
@@ -140,7 +144,7 @@ public partial class MainPage : ContentPage
         }
 
         // Attempt to connect to the server.
-        controller.Connect(serverText.Text, nameText.Text);
+        controller.Connect(serverText.Text, nameText.Text + "\n");
 
         // Disable the connect button and text entries so the user can't connect again or change the server or their name.
         connectButton.IsEnabled = false;

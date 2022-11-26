@@ -4,6 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 
+/// <summary>
+/// The Snake class has all the fields that tie a client to a snake in the game such as id, name, and movement details.
+/// ToString is overriden to return the Json serialization of this class.
+/// </summary>
 [JsonObject(MemberSerialization.OptIn)]
 public class Snake
 {

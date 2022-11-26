@@ -3,7 +3,7 @@ using SnakeGame;
 using System;
 using System.Text.Json.Serialization;
 
-[JsonObject(MemberSerialization.OptIn)]
+
 /// <summary>
 /// Walls will always be axis-aligned.
 /// 
@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 /// 
 /// Walls can overlap and intersect each other.
 /// </summary>
+[JsonObject(MemberSerialization.OptIn)]
 public class Wall
 {
     [JsonProperty(PropertyName = "wall")]
