@@ -315,7 +315,8 @@ public class WorldPanel : IDrawable
                 segment.Rotation, SnakeSegmentDrawer);
         }
         // Draw the snake's name and score
-        canvas.DrawString(s.name + ": " + s.score, (float)s.body[i].X, (float)s.body[i].Y,
+        canvas.FontColor = Colors.White;
+        canvas.DrawString(s.name + ": " + s.score, (float)s.body[i].X, (float)s.body[i].Y - 15,
             HorizontalAlignment.Center);
     }
 
@@ -374,7 +375,7 @@ public class WorldPanel : IDrawable
             {
                 // Calculate the position of the sprite
                 x = w.p1.X - 25;
-                y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i) + 25;
+                y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i);
                 rotation = 270;
                 // Draw the sprite
                 DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
@@ -389,7 +390,7 @@ public class WorldPanel : IDrawable
             for (int i = 0; i < numOfSprites; i++)
             {
                 // Calculate the position of the sprite
-                x = (drawRight? w.p1.X + (50 * i) : w.p1.X - (50 * i)) - 25;
+                x = (drawRight ? w.p1.X + (50 * i) : w.p1.X - (50 * i)) - 25;
                 y = w.p1.Y - 25;
                 rotation = 0;
                 // Draw the sprite
