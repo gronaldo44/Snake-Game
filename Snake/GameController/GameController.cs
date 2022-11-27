@@ -78,21 +78,64 @@ public class GameController
         // Send the player name to the server
         if (Networking.Send(state.TheSocket, playerName))
         {
-            // Receive the playerID, worldSize, and Walls
-            state.OnNetworkAction = InitializeWorld;
+            // Receive the playerID and worldSize
+            state.OnNetworkAction = GetPlayerIDAndWorldSize;
             Networking.GetData(state);
         }
     }
 
-    private void InitializeWorld(SocketState state)
+    private void GetPlayerIDAndWorldSize(SocketState state)
     {
         // Document the player ID and world size
         string raw = state.GetData();
+        state.RemoveData(0, raw.Length - 1);
         string[] data = Regex.Split(raw, "\n");
         theWorld.playerID = int.Parse(data[0]);
         theWorld.worldSize = int.Parse(data[1]);
 
+        // Allow the server to start updating the walls
+        if (data.Length > 3)
+        {   // The server is already sending the walls
+            lock (theWorld)
+            {
+                foreach (string str in data)
+                {
+                    // Skip non-json strings
+                    if (!str.StartsWith('{') && !str.EndsWith('}'))
+                    {
+                        continue;
+                    }
+
+                    // Parse the wall as a Json object
+                    JObject obj = JObject.Parse(str);
+                    JToken? token = obj["wall"];
+                    if (token != null)
+                    {   // Document the wall in the world
+                        Wall w = JsonConvert.DeserializeObject<Wall>(str)!;
+                        theWorld.walls.Add(w.id, w);
+                    }
+                }
+            }
+            // Notify the View that the walls have arrived from the server
+            UpdateArrived.Invoke();
+
+            // Allow the server to start populating the world
+            state.OnNetworkAction = OnFrame;
+            Networking.GetData(state);
+        }
+        else
+        {   // This is the first connection and hasn't been sent walls
+            state.OnNetworkAction = GetWalls;
+            Networking.GetData(state);
+        }
+    }
+
+    private void GetWalls(SocketState state)
+    {
         // Document walls
+        string raw = state.GetData();
+        state.RemoveData(0, raw.Length - 1);
+        string[] data = Regex.Split(raw, "\n");
         lock (theWorld)
         {
             foreach (string str in data)
@@ -115,9 +158,8 @@ public class GameController
         }
         // Notify the View that the walls have arrived from the server
         UpdateArrived.Invoke();
-        state.RemoveData(0, raw.Length - 1);
 
-        // Allow the server to start updating the world
+        // Allow the server to start populating the world
         state.OnNetworkAction = OnFrame;
         Networking.GetData(state);
     }
