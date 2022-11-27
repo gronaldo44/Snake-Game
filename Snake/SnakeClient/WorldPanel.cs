@@ -215,8 +215,15 @@ public class WorldPanel : IDrawable
         SnakeSegment segment = new SnakeSegment();
         segment.Direction = "up";
         segment.Rotation = 0;
+
         while (i < s.body.Count - 1)
         {
+            // Check if this joint is at the map's edge
+            if (PassedEdgeOfMap(s.body[i]))
+            {   // Continue drawing from the other edge of the map
+                i++;
+                continue;
+            }
             Vector2D p1 = s.body[i], p2 = s.body[++i];
 
             // Calculate segment orientation
@@ -318,6 +325,24 @@ public class WorldPanel : IDrawable
         canvas.FontColor = Colors.White;
         canvas.DrawString(s.name + ": " + s.score, (float)s.body[i].X, (float)s.body[i].Y - 15,
             HorizontalAlignment.Center);
+    }
+
+
+    /// <summary>
+    /// Returns true if this joint interesects the edge of the map
+    /// </summary>
+    /// <param name="joint"></param>
+    /// <returns>whether or not this joint is on the edge of the map</returns>
+    private bool PassedEdgeOfMap(Vector2D joint)
+    {
+        //return (joint.X.Equals4DigitPrecision(Math.Abs(theWorld.worldSize / 2))) ||
+        //    (joint.Y == Math.Abs(theWorld.worldSize / 2));
+
+        double negBorder, posBorder;
+        negBorder = -(theWorld.worldSize / 2);
+        posBorder = theWorld.worldSize / 2;
+        return (joint.X < negBorder || joint.Y < negBorder) ||
+            (joint.X > posBorder || joint.Y > posBorder);
     }
 
     /// <summary>
