@@ -96,26 +96,7 @@ public class GameController
         // Allow the server to start updating the walls
         if (data.Length > 3)
         {   // The server is already sending the walls
-            lock (theWorld)
-            {
-                foreach (string str in data)
-                {
-                    // Skip non-json strings
-                    if (!str.StartsWith('{') && !str.EndsWith('}'))
-                    {
-                        continue;
-                    }
-
-                    // Parse the wall as a Json object
-                    JObject obj = JObject.Parse(str);
-                    JToken? token = obj["wall"];
-                    if (token != null)
-                    {   // Document the wall in the world
-                        Wall w = JsonConvert.DeserializeObject<Wall>(str)!;
-                        theWorld.walls.Add(w.id, w);
-                    }
-                }
-            }
+            DocumentWalls(data);
             // Notify the View that the walls have arrived from the server
             UpdateArrived.Invoke();
 
@@ -130,12 +111,8 @@ public class GameController
         }
     }
 
-    private void GetWalls(SocketState state)
+    private void DocumentWalls(string[] data)
     {
-        // Document walls
-        string raw = state.GetData();
-        state.RemoveData(0, raw.Length - 1);
-        string[] data = Regex.Split(raw, "\n");
         lock (theWorld)
         {
             foreach (string str in data)
@@ -156,6 +133,15 @@ public class GameController
                 }
             }
         }
+    }
+
+    private void GetWalls(SocketState state)
+    {
+        // Receive walls from the server
+        string raw = state.GetData();
+        state.RemoveData(0, raw.Length - 1);
+        string[] data = Regex.Split(raw, "\n");
+        DocumentWalls(data);
         // Notify the View that the walls have arrived from the server
         UpdateArrived.Invoke();
 
