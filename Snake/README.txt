@@ -98,3 +98,7 @@ not connect to a game unless the server is already be running. To connect, enter
 on "Connect". There is already a default server name of localhost for when the server is played on a single computer by 
 only one person. After the connection is made, the player moves around using the WASD keys and as they collect powerups,
 their snakes size (and score) will increase.
+
+#PS9 NOTES
+	#Project structure | 11/30
+		# TODO: learn about reading xml files and start implementing the Server class by updating the model
