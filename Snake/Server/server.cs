@@ -13,7 +13,7 @@ using System.Xml;
 /// <summary>
 /// TODO: Header comments.
 /// </summary>
-internal class Server
+public class Server
 {
 
     // Need access to the world.
@@ -34,19 +34,11 @@ internal class Server
 
         // Get the current settings
         XmlReader settings = XmlReader.Create("settings.xml");
-
-        settings.Read();
-        int universeSize = int.Parse(settings.Value);
-        settings.Read();
-        int msPerFrame = int.Parse(settings.Value);
-        settings.Read();
-        int framesPerShot = int.Parse(settings.Value);
-        settings.Read();
-        int respawnRate = int.Parse(settings.Value);
-        // Read the walls
+        // TODO: Read the frame settings and world size
+        // TODO: Read the walls
         while (settings.Read())
         {
-            Debug.WriteLine(settings.Value);
+            //Console.WriteLine(settings.Value);
         }
     }
 
@@ -64,10 +56,11 @@ internal class Server
     }
 
     /// <summary>
-    /// 
+    /// For unit testing
     /// </summary>
     /// <param name="args"></param>
-    public static void main(string[] args)
+    public static void Main(string[] args)
     {
-
+        Server s = new();
     }
+}
