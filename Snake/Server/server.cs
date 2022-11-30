@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 /// <summary>
 /// TODO: Header comments.
 /// </summary>
-internal class server
+internal class Server
 {
 
-    // TODO: Need a collection of moveable objects. Or just access to the world.
+    // Need access to the world.
     World theWorld;
 
     /**
@@ -26,21 +26,35 @@ internal class server
     /// <summary>
     /// TODO: Default Constructor
     /// </summary>
-    public server()
+    public Server()
     {
         theWorld = new();
     }
 
     /// <summary>
-    /// TODO: contract
+    /// TODO: update the state (movement, position, booleans) of each object
     /// </summary>
     private void OnFrame()
     {
-        // TODO: update the state (movement, position, booleans) of each object
-        foreach (object obj in theWorld)
+
+        foreach (Snake snake in theWorld.snakes)
         {
-            // if(dead) remove
-            // else obj.move()  or obj.update()
+            // if(dead)
+            //      theWorld.snakes.remove(snake);
+            // else while(there's food in the snake's belly) {
+            //      snake.moveButHoldOff() // grow at the head but the tail should stay where it's at.
+            //      snake.score++;
+            // }
+            // snake.move(); again
+        }
+        foreach (PowerUp pUp in theWorld.powerups)
+        {
+            // if(dead) {
+            //      snake.food += what the powerup is worth.
+            //      theWorld.powerups.remove(pUp);
+            // }
+
+            // else continue;
         }
     }
 
