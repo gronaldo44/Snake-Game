@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GameModel\GameModel.csproj" />
+    <ProjectReference Include="..\Vector2D\Vector2D.csproj" />
   </ItemGroup>
 
 </Project>
