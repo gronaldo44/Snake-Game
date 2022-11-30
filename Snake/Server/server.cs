@@ -13,10 +13,10 @@ using System.Xml;
 /// <summary>
 /// TODO: Header comments.
 /// </summary>
-internal class server
+internal class Server
 {
 
-    // TODO: Need a collection of moveable objects. Or just access to the world.
+    // Need access to the world.
     World theWorld;
 
     /**
@@ -28,7 +28,7 @@ internal class server
     /// <summary>
     /// TODO: Default Constructor
     /// </summary>
-    public server()
+    public Server()
     {
         theWorld = new();
 
@@ -51,7 +51,7 @@ internal class server
     }
 
     /// <summary>
-    /// TODO: contract
+    /// TODO: update the state (movement, position, booleans) of each object
     /// </summary>
     private void OnFrame()
     {
