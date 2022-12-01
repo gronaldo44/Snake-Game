@@ -18,8 +18,11 @@ public class World
     public Dictionary<int, Snake> snakes { get; private set; }       // All snakes to be drawn each frame
     public Dictionary<int, Wall> walls;                              // All walls to be drawn on initialization
     public Dictionary<int, PowerUp> powerups { get; private set; }   // All powerups to be drawn each frame
-    public int worldSize;                    // Size of each side of the world; the world is square
-    public int playerID;                     // This client's snakes player ID
+    public int worldSize;                   // Size of each side of the world; the world is square
+    public int playerID;                    // This client's snakes player ID
+    public int FramesPerShot;               // Legacy code
+    public int MSPerFrame;                  // How many miliseconds for each frame
+    public int RespawnRate;                 // How many frames before snakes respawn
 
     // Construct an empty world
     public World()

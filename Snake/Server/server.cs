@@ -33,12 +33,50 @@ public class Server
         theWorld = new();
 
         // Get the current settings
-        XmlReader settings = XmlReader.Create("settings.xml");
-        // TODO: Read the frame settings and world size
-        // TODO: Read the walls
-        while (settings.Read())
+        XmlDocument settings = new();
+        settings.Load("settings.xml");
+        // Read the frame settings and world size
+        XmlNode? fpshot = settings.SelectSingleNode("//GameSettings/FramesPerShot");
+        if (fpshot != null)
         {
-            //Console.WriteLine(settings.Value);
+            Console.WriteLine(fpshot.InnerText);
+        }
+        XmlNode? mspframe = settings.SelectSingleNode("//GameSettings/MSPerFrame");
+        if (mspframe != null)
+        {
+            Console.WriteLine(mspframe.InnerText);
+        }
+        XmlNode? respawnRate = settings.SelectSingleNode("//GameSettings/RespawnRate");
+        if (respawnRate != null)
+        {
+            Console.WriteLine(respawnRate.InnerText);
+        }
+        XmlNode? worldSize = settings.SelectSingleNode("//GameSettings/UniverseSize");
+        if (worldSize != null)
+        {
+            Console.WriteLine(worldSize.InnerText);
+        }
+        // Read the walls
+        XmlNodeList? walls = settings.SelectNodes("//GameSettings/Wall");
+        if (walls != null)
+        {   // TODO: debug starting here
+            foreach (XmlNode w in walls)
+            {
+                XmlNode? id = w.SelectSingleNode("ID");
+                XmlNode? p1_x = w.SelectSingleNode("//p1/x");
+                XmlNode? p1_y = w.SelectSingleNode("//p1/y");
+                XmlNode? p2_x = w.SelectSingleNode("//p2/x");
+                XmlNode? p2_y = w.SelectSingleNode("//p2/y");
+                if (id != null && p1_x != null && p1_y != null && p2_x != null && 
+                    p2_y != null)
+                {
+                    Console.WriteLine("Wall: \n\tid: " + id.InnerText);
+                    Console.WriteLine("\tP1:\n\t\tx: " + p1_x.InnerText);
+                    Console.WriteLine("\t\ty: " + p1_y.InnerText);
+                    Console.WriteLine("\tP2:\n\t\tx: " + p2_x.InnerText);
+                    Console.WriteLine("\t\ty: " + p2_y.InnerText);
+                }
+            }
         }
     }
 
