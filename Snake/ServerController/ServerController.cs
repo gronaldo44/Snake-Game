@@ -8,6 +8,9 @@
     /// </summary>
     public class ServerController
     {
-
+        /**
+         * TODO: constructor(Action updateArrived, Action<SocketState> errorOccurred, World w)
+         * 
+         */
     }
 }

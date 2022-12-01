@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+// TODO: using NetworkUtil;
 
 
 
@@ -17,8 +19,16 @@ using System.Xml;
 public class Server
 {
 
-    // Need access to the world.
+    // Need access to other projects.
     World theWorld;
+
+    /*
+     * TODO: I think we need to add a project reference to the server controller
+     * 
+     * ServerController serverControl = new(Action updateArrived, Action<SocketState> errorOccurred, World w);
+     */
+
+
 
     /**
      * TODO: Need a collection of all commands that need to be executed on this frame.
@@ -86,16 +96,26 @@ public class Server
     }
 
     /// <summary>
-    /// TODO: update the state (movement, position, booleans) of each object
+    /// Updates the state of each object in the world (movement, position, booleans) using the 
+    /// Server Controller.
     /// </summary>
     private void OnFrame()
     {
-        // TODO: Update the positions of powerups
-        
-        // TODO: Receive move commands from clients
-        // TODO: Update the positions of snakes and handle collisions
-
-        // TODO: Send the data back to each client
+        /*
+         * TODO: OnFrame/Update
+         * 
+         * foreach(SocketState client in clients) {
+         * 
+         *      -Networking.GetData(SocketState eachClient)
+         *      
+         *      -Update the positions of powerups
+         *      -Receive move commands from clients
+         *      -Update the positions of snakes and handle collisions
+         *      -Send the data back to each client
+         *      
+         * }
+         * 
+         */
     }
 
     /// <summary>
@@ -106,11 +126,36 @@ public class Server
     {
         // Get the game settings
         Server s = new();
-        
-        // TODO: Start listening for clients
-        // TODO: Receive clients (snakes)
-        // TODO: Finish connection with the client (walls/id/...)
+
+        // TODO: Start listening for and receiving snake-clients
+        // TcpListener listener = Networking.StartServer(Action < SocketState > OnConnect, int port);
+
+        // TODO: Finish connection with the client (send them their id, worldsize, and walls).... I think this is done in "OnConnect".
+
+
         // TODO: Start sending onFrame to the clients
-        // TODO: Allow the client to send move commands
+        /*
+         * while(there are no clients connected) {spin/do nothing}
+         * 
+         * while(there are clients connected) {OnFrame/Update()}
+         */
+
+        /*
+         * TODO: Allow the client to send move commands ........ 
+         * 
+         * The assignment instructions say
+         *      "The commands should be applied on the next frame after receiving them"
+         *      
+         * So I think we should handle this in OnFrame/Update()
+         * 
+         *      - maybe we could save each move command in a variable (Snakes already have a "dir") 
+         *      then at the start of the for-each-client-loop in OnFrame:
+         *          
+         *          World.snakes[ID].position += velocity * dir;
+         *      
+         *          if(the new command is valid)
+         *              World.snakes[ID].dir = new command;
+         */
+
     }
 }

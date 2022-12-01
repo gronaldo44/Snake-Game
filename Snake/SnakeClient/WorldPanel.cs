@@ -400,7 +400,7 @@ public class WorldPanel : IDrawable
             {
                 // Calculate the position of the sprite
                 x = w.p1.X - 25;
-                y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i); // TODO: y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i)
+                y = drawDown ? w.p1.Y + (50 * i) + 25 : w.p1.Y - (50 * i);
                 rotation = 270;
                 // Draw the sprite
                 DrawObjectWithTransform(canvas, null, x, y, rotation, WallSpriteDrawer);
