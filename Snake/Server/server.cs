@@ -1,5 +1,6 @@
 ﻿namespace SnakeGame;
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -39,44 +40,48 @@ public class Server
         XmlNode? fpshot = settings.SelectSingleNode("//GameSettings/FramesPerShot");
         if (fpshot != null)
         {
-            Console.WriteLine(fpshot.InnerText);
+            theWorld.FramesPerShot = int.Parse(fpshot.InnerText);
         }
         XmlNode? mspframe = settings.SelectSingleNode("//GameSettings/MSPerFrame");
         if (mspframe != null)
         {
-            Console.WriteLine(mspframe.InnerText);
+            theWorld.MSPerFrame = int.Parse(mspframe.InnerText);
         }
         XmlNode? respawnRate = settings.SelectSingleNode("//GameSettings/RespawnRate");
         if (respawnRate != null)
         {
-            Console.WriteLine(respawnRate.InnerText);
+            theWorld.RespawnRate = int.Parse(respawnRate.InnerText);
         }
-        XmlNode? worldSize = settings.SelectSingleNode("//GameSettings/UniverseSize");
-        if (worldSize != null)
+        XmlNode? univereSize = settings.SelectSingleNode("//GameSettings/UniverseSize");
+        if (univereSize != null)
         {
-            Console.WriteLine(worldSize.InnerText);
+            theWorld.worldSize = int.Parse(univereSize.InnerText);
         }
-        // Read the walls
-        XmlNodeList? walls = settings.SelectNodes("//GameSettings/Wall");
-        if (walls != null)
-        {   // TODO: debug starting here
+        // Read the walls node
+        XmlNode? wallsNode = settings.SelectSingleNode("//GameSettings/Walls");
+        if (wallsNode != null)
+        {   // Read each wall
+            XmlNodeList walls = wallsNode.ChildNodes;
             foreach (XmlNode w in walls)
             {
                 XmlNode? id = w.SelectSingleNode("ID");
-                XmlNode? p1_x = w.SelectSingleNode("//p1/x");
-                XmlNode? p1_y = w.SelectSingleNode("//p1/y");
-                XmlNode? p2_x = w.SelectSingleNode("//p2/x");
-                XmlNode? p2_y = w.SelectSingleNode("//p2/y");
+                XmlNode? p1_x = w.SelectSingleNode("p1/x");
+                XmlNode? p1_y = w.SelectSingleNode("p1/y");
+                XmlNode? p2_x = w.SelectSingleNode("p2/x");
+                XmlNode? p2_y = w.SelectSingleNode("p2/y");
                 if (id != null && p1_x != null && p1_y != null && p2_x != null && 
                     p2_y != null)
                 {
-                    Console.WriteLine("Wall: \n\tid: " + id.InnerText);
-                    Console.WriteLine("\tP1:\n\t\tx: " + p1_x.InnerText);
-                    Console.WriteLine("\t\ty: " + p1_y.InnerText);
-                    Console.WriteLine("\tP2:\n\t\tx: " + p2_x.InnerText);
-                    Console.WriteLine("\t\ty: " + p2_y.InnerText);
+                    Wall wall = new();
+                    wall.id = int.Parse(id.InnerText);
+                    wall.p1.X = double.Parse(p1_x.InnerText);
+                    wall.p1.Y = double.Parse(p1_y.InnerText);
+                    wall.p2.X = double.Parse(p2_x.InnerText);
+                    wall.p2.Y = double.Parse(p2_y.InnerText);
+                    theWorld.walls.Add(wall.id, wall);
                 }
             }
+            Console.WriteLine("break");
         }
     }
 
@@ -85,12 +90,12 @@ public class Server
     /// </summary>
     private void OnFrame()
     {
-        // TODO: update the state (movement, position, booleans) of each object
-        //foreach (object obj in theWorld)
-        //{
-        //    // if(dead) remove
-        //    // else obj.move()  or obj.update()
-        //}
+        // TODO: Update the positions of powerups
+        
+        // TODO: Receive move commands from clients
+        // TODO: Update the positions of snakes and handle collisions
+
+        // TODO: Send the data back to each client
     }
 
     /// <summary>
@@ -99,6 +104,13 @@ public class Server
     /// <param name="args"></param>
     public static void Main(string[] args)
     {
+        // Get the game settings
         Server s = new();
+        
+        // TODO: Start listening for clients
+        // TODO: Receive clients (snakes)
+        // TODO: Finish connection with the client (walls/id/...)
+        // TODO: Start sending onFrame to the clients
+        // TODO: Allow the client to send move commands
     }
 }

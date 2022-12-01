@@ -15,7 +15,7 @@ using System.Text.Json.Serialization;
 public class Wall
 {
     [JsonProperty(PropertyName = "wall")]
-    public int id { get; private set; }           // Wall's unique ID
+    public int id { get; set; }           // Wall's unique ID
     [JsonProperty(PropertyName = "p1")]
     public Vector2D p1 { get; private set; } = new();       // endpoint
     [JsonProperty(PropertyName = "p2")]
