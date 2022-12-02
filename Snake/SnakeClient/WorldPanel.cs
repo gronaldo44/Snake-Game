@@ -212,7 +212,7 @@ public class WorldPanel : IDrawable
 
         // Draw the snake one segment at a time starting from the tail
         int i = 0;
-        SnakeSegment segment = new SnakeSegment();
+        SnakeSegment segment = new();
         segment.Direction = "up";
         segment.Rotation = 0;
 
