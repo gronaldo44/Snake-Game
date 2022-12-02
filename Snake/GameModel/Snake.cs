@@ -3,6 +3,7 @@ using SnakeGame;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Net;
 
 /// <summary>
 /// The Snake class has all the fields that tie a client to a snake in the game such as id, name, and movement details.
@@ -30,6 +31,35 @@ public class Snake
     [JsonProperty(PropertyName = "join")]
     public bool join;   // Did the snake join on this frame?
 
+    /// <summary>
+    /// Default constructor for JSON deserialization
+    /// </summary>
+    [JsonConstructor]
+    public Snake()
+    {
+    }
+
+    /// <summary>
+    /// Constructor for a new Snake being added server-side
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="body">each segment of the snake</param>
+    /// <param name="dir">direction the snake is moving in</param>
+    /// <param name="name">name of the player controlling this snake</param>
+    public Snake(int id, List<Vector2D> body, Vector2D dir, string name)
+    {
+        this.id = id;
+        this.body = body;
+        this.direction = dir;
+        this.name = name;
+        this.alive = true;
+        this.join = true;
+    }
+
+    /// <summary>
+    /// String representation of snake in JSON format
+    /// </summary>
+    /// <returns>The snake's param in JSON format</returns>
     public override string ToString()
     {
         return JsonConvert.SerializeObject(this);
