@@ -13,6 +13,7 @@ using NetworkUtil;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 
 
@@ -198,6 +199,102 @@ public class Server
     }
 
     /// <summary>
+    /// Randomly finds an empty spot in the world and returns a newly spawned 
+    /// snake segment there. 
+    /// 
+    /// Snakes are 120 units upon respawn.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static List<Vector2D> SpawnSnake()
+    {
+        // Prepare a list of Snake segments to return
+        List<Vector2D> segments;
+
+        // Choose a random axis-aligned orientation for snake
+        Random rng = new();
+        Vector2D spawnDir = new(1, 0); // assume vertical
+        if (rng.Next(2) == 0) // 50% chance to swap to horizontal
+        {
+            spawnDir.Rotate(90);
+        }
+        if (rng.Next(2) == 0) // 50% chance to reverse direction
+        {
+            spawnDir *= -1;
+        }
+
+        // Find a straight, empty list of vectors that don't collide with anything.
+        do
+        {
+            // Starting at a random (head) location
+            int xCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
+            int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
+            Vector2D head = new(xCor, yCor);
+
+            // (Re)set the segment-list to contain a single (head) segment
+            segments = new();
+            segments.Add(head);
+
+            // Calculate the distance between each snake segment.
+            int framesWorth = 12; // The default is 12 frames worth of movement
+            Vector2D increment = new Vector2D(spawnDir) * framesWorth;
+
+            // Add the trailing segments to the list
+            int snakeSize = 10; // TODO: I think "snakeSize" and "framesworth" can be defined globally by the constructor after reading the settings file.
+            for (int i = 0; i < snakeSize - 1; i++)
+                segments.Add(segments.Last() + increment);
+
+        // Repeat this process until a straight, empty, non-colliding list of vectors is found
+        } while (AreColliding(segments)); 
+
+        // Then return that list of vectors
+        return segments;
+    }
+
+    /// <summary>
+    /// Overloaded method of collision detection for a list of snake segments.
+    /// This method just calls the primary "AreColliding" method to check for collisions
+    /// between each snake segment and each world object.
+    /// </summary>
+    /// <param name="snake"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static bool AreColliding(List<Vector2D> snake)
+    {
+        // Check for a collision between each snake-segment and every single collidable world object
+        foreach(Vector2D segment in snake)
+        {
+            // walls
+            foreach(Wall w in theWorld.walls.Values)
+                if(AreColliding(segment, w))
+                    return true;
+            // other snakes
+            foreach (Snake s in theWorld.snakes.Values)
+                if (AreColliding(segment, s))
+                    return true;
+            // power-ups
+            foreach (PowerUp pUp in theWorld.powerups.Values)
+                if (AreColliding(segment, pUp))
+                    return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// TODO: This method might need to be overloaded once for each possible type-pair of arguments.
+    /// Returns a boolean indicating if the two argued world objects are colliding.
+    /// </summary>
+    /// <param name="obj1"></param>
+    /// <param name="obj2"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static bool AreColliding(Object obj1, Object obj2)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
     /// Receive a movement command from the client and update the client's 
     /// snake's direction.
     /// </summary>
@@ -245,18 +342,7 @@ public class Server
         public string moving;
     }
 
-    /// <summary>
-    /// Randomly finds an empty spot in the world and returns a newly spawned 
-    /// snake segment there. 
-    /// 
-    /// Snakes are 120 units upon respawn.
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    private static List<Vector2D> SpawnSnake()
-    {
-        throw new NotImplementedException();
-    }
+
 
     /// <summary>
     /// For unit testing
