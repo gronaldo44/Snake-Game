@@ -37,7 +37,7 @@ public class Snake
 
 
     /// <summary>
-    /// Default constructor for JSON deserialization
+    /// Default constructor for JSON serialization
     /// </summary>
     [JsonConstructor]
     public Snake()
@@ -64,7 +64,7 @@ public class Snake
     /// <summary>
     /// String representation of snake in JSON format
     /// </summary>
-    /// <returns>The snake's param in JSON format</returns>
+    /// <returns>The snake's params in JSON format</returns>
     public override string ToString()
     {
         return JsonConvert.SerializeObject(this);
