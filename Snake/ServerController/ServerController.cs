@@ -1,6 +1,8 @@
 ﻿using NetworkUtil;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Drawing;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace SnakeGame
@@ -17,6 +19,7 @@ namespace SnakeGame
         private World theWorld = new();
         private int snakeId = 0;
         private int powerupId = 0;
+        private int powerupSpawnDelay = 200;    // How long to wait before spawning a new powerup
         #endregion
         #region Directions
         private static Vector2D UP = new Vector2D(0, -1);
@@ -127,7 +130,8 @@ namespace SnakeGame
                 int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 Vector2D head = new(xCor, yCor);
                 // Calculate position of the rest of the body
-                Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X), head.Y + (120 * spawnDir.Y));
+                Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X), 
+                    head.Y + (120 * spawnDir.Y));
                 body = new List<Vector2D>();
                 body.Add(tail);
                 body.Add(head);
@@ -137,12 +141,40 @@ namespace SnakeGame
             return body;
         }
 
+        #endregion
+
+        #region Collision Checking
+        /// <summary>
+        /// Checks whether or not a given powerup location is an Invalid spawn location
+        /// </summary>
+        /// <param name="powerup"></param>
+        /// <returns>Invalid spawn location?</returns>
+        private bool InvalidSpawn(Vector2D powerup)
+        {
+            // Check for a collision between each snake-segment and every single collidable world object
+            foreach (Wall w in theWorld.walls.Values)
+            {   // walls
+                List<Vector2D> wall = new();
+                wall.Add(w.p1);
+                wall.Add(w.p2);
+                if (AreColliding(powerup, wall, 50))
+                    return true;
+            }
+            foreach (Snake s in theWorld.snakes.Values)
+            {   // other snakes
+                if (AreColliding(powerup, s.body, 10))
+                    return true;
+            }
+
+            // There were no collisions
+            return false;
+        }
+
         /// <summary>
         /// Checks whether or not a given snake body is an Invalid spawn location
         /// </summary>
         /// <param name="snake"></param>
         /// <returns>Invalid spawn location?</returns>
-        /// <exception cref="NotImplementedException"></exception>
         private bool InvalidSpawn(List<Vector2D> snake)
         {
             // Check for a collision between each snake-segment and every single collidable world object
@@ -151,29 +183,90 @@ namespace SnakeGame
                 List<Vector2D> wall = new();
                 wall.Add(w.p1);
                 wall.Add(w.p2);
-                if (AreColliding(snake.Last(), wall, 50))
+                if (AreColliding(snake, wall, 50))
                     return true;
             }
             foreach (Snake s in theWorld.snakes.Values)
             {   // other snakes
-                if (AreColliding(snake.Last(), s.body, 10))
+                if (AreColliding(snake, s.body, 10))
                     return true;
             }
 
             // There were no collisions
             return false;
         }
-        #endregion
 
-        #region Collision Checking
         /// <summary>
-        /// Checks whether or not a given head is colldiing with an object
+        /// Checks if two rectangles given by their topleft and botright corners 
+        /// overlap. 
         /// </summary>
-        /// <param name="head">Vector2D representing a head</param>
+        /// <param name="rect1TL">rectangle one top left corner</param>
+        /// <param name="rect1BR">rectangle one bottom right corner</param>
+        /// <param name="rect2TL">rectangle two top left corner</param>
+        /// <param name="rect2BR">rectangle two bottom right corner</param>
+        /// <returns>whether or not the rectangles intersect</returns>
+        private bool IsIntersectingRectangles(Vector2D rect1TL, Vector2D rect1BR,
+                              Vector2D rect2TL, Vector2D rect2BR)
+        {
+            // if rectangle has area 0, no overlap
+            if (rect1TL.X == rect1BR.X || rect1TL.Y == rect1BR.Y || rect2BR.X == rect2TL.X || rect2TL.Y == rect2BR.Y)
+            {
+                return false;
+            }
+
+            // If one rectangle is on left side of other
+            if (rect1TL.X > rect2BR.X || rect2TL.X > rect1BR.X)
+            {
+                return false;
+            }
+
+            // If one rectangle is above other
+            if (rect1BR.Y > rect2TL.Y || rect2BR.Y > rect1TL.Y)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Checks whether or not a body of a newly spawned snake is colliding with 
+        /// an object
+        /// 
+        /// Newly spawned snakes are 120 units long with one straight axis-aligned 
+        /// segment.
+        /// </summary>
+        /// <param name="body">newly spawned snake's body</param>
+        /// <param name="obj">obj being collided with</param>
+        /// <param name="width">width of the object being collided with</param>
+        /// <returns>Whether or not the body and object have collided</returns>
+        private bool AreColliding(List<Vector2D> body, List<Vector2D> obj, int width)
+        {
+            // Check the collision barrier one segment at a time
+            Vector2D bodyTopLeft, bodyBottomRight, objTopLeft, objBottomRight;
+            CalculateCollisionBarrier(body[0], body[1], 10, out bodyTopLeft, out bodyBottomRight);
+            for (int i = 0; i < obj.Count - 1; i++)
+            {
+                Vector2D p1 = obj[i], p2 = obj[i + 1];
+                CalculateCollisionBarrier(p1, p2, width, out objTopLeft, out objBottomRight);
+                // Check for collision
+                if (IsIntersectingRectangles(bodyTopLeft, bodyBottomRight, objTopLeft, objBottomRight))
+                {
+                    return true;
+                }
+            }
+
+            // No collisions found
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether or not a given vector is colliding with an object
+        /// </summary>
+        /// <param name="v">vector</param>
         /// <param name="obj">object being collided with</param>
         /// <param name="width">width of the object being collided with</param>
-        /// <returns>Whether or not the head and object have collided</returns>
-        private bool AreColliding(Vector2D head, List<Vector2D> obj, int width)
+        /// <returns>Whether or not the vector and object have collided</returns>
+        private bool AreColliding(Vector2D v, List<Vector2D> obj, int width)
         {
             // Check the collision barrier one segment at a time
             Vector2D topLeft, bottomRight;
@@ -182,8 +275,8 @@ namespace SnakeGame
                 Vector2D p1 = obj[i], p2 = obj[i + 1];
                 CalculateCollisionBarrier(p1, p2, width, out topLeft, out bottomRight);
                 // Check for collision
-                if ((head.X > topLeft.X && head.X < bottomRight.X) &&
-                    (head.Y > topLeft.Y && head.Y < bottomRight.Y))
+                if ((v.X > topLeft.X && v.X < bottomRight.X) &&
+                    (v.Y > topLeft.Y && v.Y < bottomRight.Y))
                 {
                     return true;
                 }
@@ -348,90 +441,148 @@ namespace SnakeGame
         /// </summary>
         private void OnFrame()
         {
-            /*
-             * TODO: OnFrame/Update
-             * 
-             * foreach(SocketState client in clients) {
-             * 
-             *      -Networking.GetData(SocketState eachClient)
-             *      
-             *      -Update the positions of powerups
-             *      -Receive move commands from clients
-             *      -Update the positions of snakes and handle collisions
-             *      -Send the data back to each client
-             *      
-             * }
-             */
             // Update the current state of the world
-            foreach(Snake s in theWorld.snakes.Values)
+            lock (theWorld)
             {
-                // Move the head
-                Vector2D head = s.body.Last() + (s.direction * 3);
-                s.body.Last().X = head.X;
-                s.body.Last().Y = head.Y;
-                // Check for Collision
-                foreach (Snake snakeBeingHit in theWorld.snakes.Values)
+                // Spawn powerups
+                if (theWorld.powerups.Count() < theWorld.MaxPowerups)
                 {
-                    if (snakeBeingHit.id == s.id)
+                    if (powerupSpawnDelay == 0)
                     {
-                        // TODO: Overload AreColliding for self collisions
-                        //if (AreColliding(collidingSnake))
-                        //{
-                        //    collidingSnake.died = true;
-                        //    break;
-                        //}
-                    } else
-                    {
-                        if (AreColliding(s.body.Last(), snakeBeingHit.body, 10))
+                        // Find a valid spawn location for the snake's starting segment
+                        Random rng = new();
+                        Vector2D loc = new();   // tmp value
+                        do
                         {
-                            s.died = true;
-                            s.alive = false;
-                            break;
-                        }
+                            // Randomly place the powerup
+                            int xCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
+                            int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
+                            loc = new(xCor, yCor);
+                        } while (InvalidSpawn(loc));
+                        // Reset the spawn timer for the next powerup
+                        powerupSpawnDelay = rng.Next(0, 201);
+                        // Spawn the powerup into the world
+                        PowerUp p = new PowerUp(powerupId++, loc);
+                        theWorld.powerups.Add(p.id, p);
                     }
-                }
-                if (!s.died)
-                {
-                    // See if it died by hitting a wall
-                    foreach (Wall w in theWorld.walls.Values)
-                    {
-                        List<Vector2D> wallSeg = new();
-                        wallSeg.Add(w.p1);
-                        wallSeg.Add(w.p2);
-                        if (AreColliding(s.body.Last(), wallSeg, 50))
-                        {
-                            s.died = true;
-                            s.alive = false;
-                            break;
-                        }
+                    else
+                    {   // Lower the spawn timer by one frame
+                        powerupSpawnDelay--;
                     }
-                } else
-                {   // The snake died hitting a snake
-                    break;
-                }   
-                if (!s.died)
-                {
-                    // See if the snake grabbed any powerups
-                    foreach (PowerUp p in theWorld.powerups.Values)
-                    {
-                        if (AreColliding(s.body.Last(), p))
-                        {
-                            s.FoodInBelly += 12;
-                            break;
-                        }
-                    }
-                } else
-                {   // The snake died hitting a wall
-                    break;
                 }
 
-                // TODO: Move the rest of the body starting from the tail
+                // Move the snakes
+                foreach (Snake s in theWorld.snakes.Values)
+                {
+                    // Move the head
+                    Vector2D head = s.body.Last() + (s.direction * 3);
+                    s.body.Last().X = head.X;
+                    s.body.Last().Y = head.Y;
+                    // Check for Collision
+                    foreach (Snake snakeBeingHit in theWorld.snakes.Values)
+                    {
+                        if (snakeBeingHit.id == s.id)
+                        {
+                            // TODO: Overload AreColliding for self collisions
+                            //if (AreColliding(collidingSnake))
+                            //{
+                            //    collidingSnake.died = true;
+                            //    break;
+                            //}
+                        }
+                        else
+                        {
+                            if (AreColliding(s.body.Last(), snakeBeingHit.body, 10))
+                            {
+                                s.died = true;
+                                s.alive = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!s.died)
+                    {
+                        // See if it died by hitting a wall
+                        foreach (Wall w in theWorld.walls.Values)
+                        {
+                            List<Vector2D> wallSeg = new();
+                            wallSeg.Add(w.p1);
+                            wallSeg.Add(w.p2);
+                            if (AreColliding(s.body.Last(), wallSeg, 50))
+                            {
+                                s.died = true;
+                                s.alive = false;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {   // The snake died hitting a snake
+                        break;
+                    }
+                    if (!s.died)
+                    {
+                        // See if the snake grabbed any powerups
+                        foreach (PowerUp p in theWorld.powerups.Values)
+                        {
+                            if (AreColliding(s.body.Last(), p))
+                            {
+                                s.FoodInBelly += 12;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {   // The snake died hitting a wall
+                        break;
+                    }
+
+                    // Tail-end movement
+                    if (s.FoodInBelly > 0)
+                    {   // The snake grows one frame worth of movement
+                        s.FoodInBelly -= 1;
+                    }
+                    else
+                    {   // Move the rest of the body starting from the tail
+                        int movement = 3;
+                        // Clean up tail-end joints
+                        Vector2D dist = s.body[1] - s.body[0];
+                        while (dist.Length() < movement)
+                        {
+                            movement -= (int)dist.Length();
+                            s.body.RemoveAt(0);
+                            dist = s.body[1] - s.body[0];
+                        }
+                        // Move the tail of the snake
+                        Vector2D newTail = (s.direction * movement) + s.body[0];
+                        s.body[0] = newTail;
+                    }
+                }
             }
 
-            // TODO: Send each client the new state of the world
+            // Broadcast to the clients
+            lock (theWorld)
+            {
+                // Serialize each object in the world
+                StringBuilder jsonSerialization = new();
+                foreach (Snake s in theWorld.snakes.Values)
+                {   // Snakes
+                    jsonSerialization.Append(JsonConvert.SerializeObject(s) + "\n");
+                }
+                foreach (PowerUp p in theWorld.powerups.Values)
+                {   // Powerups
+                    jsonSerialization.Append(JsonConvert.SerializeObject(p) + "\n");
+                }
+                // Send each client the new state of the world
+                foreach (SocketState c in clients)
+                {
+                    Networking.Send(c.TheSocket, jsonSerialization.ToString());
+                }
+            }
 
             // TODO: Wait for the frame to finish
-            // TODO: Start the next frame
+            // Start the next frame
+            OnFrame();
         }
 
         #endregion
