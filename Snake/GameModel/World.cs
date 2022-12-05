@@ -23,6 +23,7 @@ public class World
     public int FramesPerShot;               // Legacy code
     public int MSPerFrame;                  // How many miliseconds for each frame
     public int RespawnRate;                 // How many frames before snakes respawn
+    public int MaxPowerups { get; private set; } = 20;   // Max amount of powerups aloud in the world
 
     // Construct an empty world
     public World()
