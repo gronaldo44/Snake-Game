@@ -12,12 +12,13 @@ using System.Net;
 [JsonObject(MemberSerialization.OptIn)]
 public class Snake
 {
+    #region JSON Properties
     [JsonProperty(PropertyName = "snake")]
     public int id { get; private set; }      // Unique id
     [JsonProperty(PropertyName = "body")]
     public List<Vector2D> body { get; private set; } = new();    // represents the entire body; first index tail; last index head
     [JsonProperty(PropertyName = "dir")]
-    public Vector2D direction { get; private set; } = new();  // Snake's orientation
+    public Vector2D direction { get; set; } = new();  // Snake's orientation
     [JsonProperty(PropertyName = "name")]
     public string name { get; private set; } = "";  // Player's name
     [JsonProperty(PropertyName = "score")]
@@ -30,6 +31,10 @@ public class Snake
     public bool dc;     // Did the snake disconnect on this frame?
     [JsonProperty(PropertyName = "join")]
     public bool join;   // Did the snake join on this frame?
+    #endregion
+    public int FoodInBelly;       // For when a snake gets a powerup
+    //public int FramesSpentDead;   // For when a snake is waiting to respawn
+
 
     /// <summary>
     /// Default constructor for JSON deserialization
