@@ -18,6 +18,30 @@ public class PowerUp
     [JsonProperty(PropertyName = "died")]
     public bool died;   // Did the power-up die on this frame?
 
+    /// <summary>
+    /// Default constructor for JSON serialization
+    /// </summary>
+    [JsonConstructor]
+    public PowerUp()
+    {
+    }
+
+    /// <summary>
+    /// Constructor for a newly spawned powerup being added server-side
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="loc"></param>
+    public PowerUp(int id, Vector2D loc)
+    {
+        this.id = id;
+        this.loc = loc;
+        this.died = false;
+    }
+
+    /// <summary>
+    /// String representation of a powerup in JSON format
+    /// </summary>
+    /// <returns>This powerup's params in JSON format</returns>
     public override string ToString()
     {
         return JsonConvert.SerializeObject(this);
