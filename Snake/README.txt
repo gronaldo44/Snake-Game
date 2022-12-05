@@ -102,3 +102,16 @@ their snakes size (and score) will increase.
 #PS9 NOTES
 	#Project structure | 11/30
 		# TODO: learn about reading xml files and start implementing the Server class by updating the model
+			COMPLETE
+
+	#What is left 12/6
+		# TODO: Respawning snakes when they die
+				COMPLETE
+		# TODO: Refactoring code to separate concnerns (we have long blocks of logic that could be split into helper meth)
+		# TODO: Handling errors/Client disconnects
+		# TODO: Closing the server
+		# TODO: Print into the console when the server is ready for clients
+		# TODO: Receive move commands from the client
+		# TODO: Wrap snakes around the world
+		# TODO: snake parameters are being serialized in the wrong order
+			# TODO: somehow the direction vector got messed up could be related to this but might be its own problem
