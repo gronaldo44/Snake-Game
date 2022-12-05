@@ -1,9 +1,9 @@
 ﻿using NetworkUtil;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Drawing;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace SnakeGame
 {
@@ -16,8 +16,7 @@ namespace SnakeGame
     public class ServerController
     {
         #region Model Params
-        private World theWorld = new();
-        private int snakeId = 0;
+        public World theWorld { get; private set; } = new();
         private int powerupId = 0;
         private int powerupSpawnDelay = 200;    // How long to wait before spawning a new powerup
         #endregion
@@ -27,12 +26,79 @@ namespace SnakeGame
         private static Vector2D LEFT = new Vector2D(-1, 0);
         private static Vector2D RIGHT = new Vector2D(1, 0);
         #endregion
-        private static List<SocketState> clients = new();
-        
+        public List<SocketState> Clients { get; private set; } = new();
+
+        public ServerController() 
+        {
+            // Get the current settings
+            XmlDocument settings = new();
+            settings.Load("settings.xml");
+            // Read the frame settings and world size
+            XmlNode? fpshot = settings.SelectSingleNode("//GameSettings/FramesPerShot");
+            if (fpshot != null)
+            {
+                theWorld.FramesPerShot = int.Parse(fpshot.InnerText);
+            }
+            XmlNode? mspframe = settings.SelectSingleNode("//GameSettings/MSPerFrame");
+            if (mspframe != null)
+            {
+                theWorld.MSPerFrame = int.Parse(mspframe.InnerText);
+            }
+            XmlNode? respawnRate = settings.SelectSingleNode("//GameSettings/RespawnRate");
+            if (respawnRate != null)
+            {
+                theWorld.RespawnRate = int.Parse(respawnRate.InnerText);
+            }
+            XmlNode? univereSize = settings.SelectSingleNode("//GameSettings/UniverseSize");
+            if (univereSize != null)
+            {
+                theWorld.worldSize = int.Parse(univereSize.InnerText);
+            }
+            // Read the walls node
+            XmlNode? wallsNode = settings.SelectSingleNode("//GameSettings/Walls");
+            if (wallsNode != null)
+            {   // Read each wall
+                XmlNodeList walls = wallsNode.ChildNodes;
+                foreach (XmlNode w in walls)
+                {
+                    XmlNode? id = w.SelectSingleNode("ID");
+                    XmlNode? p1_x = w.SelectSingleNode("p1/x");
+                    XmlNode? p1_y = w.SelectSingleNode("p1/y");
+                    XmlNode? p2_x = w.SelectSingleNode("p2/x");
+                    XmlNode? p2_y = w.SelectSingleNode("p2/y");
+                    if (id != null && p1_x != null && p1_y != null && p2_x != null &&
+                        p2_y != null)
+                    {
+                        Wall wall = new();
+                        wall.id = int.Parse(id.InnerText);
+                        wall.p1.X = double.Parse(p1_x.InnerText);
+                        wall.p1.Y = double.Parse(p1_y.InnerText);
+                        wall.p2.X = double.Parse(p2_x.InnerText);
+                        wall.p2.Y = double.Parse(p2_y.InnerText);
+                        theWorld.walls.Add(wall.id, wall);
+                    }
+                }
+            }
+        }
+
+
+
+
         #region Processing New Clients
         /// <summary>
-        /// Processes a new client connection, performs the network protocol 
-        /// handshake before, then sends the world's objects on each frame.
+        /// Waits for the newly connected client to send their name.
+        /// </summary>
+        /// <param name="state">the client</param>
+        public void ClientConnection(SocketState state)
+        {
+            Console.WriteLine("Accepted new client.");
+            state.OnNetworkAction = ClientNameReceived;
+            Networking.GetData(state);
+        }
+
+        /// <summary>
+        /// Processes a client who has sent their name by adding them to the list 
+        /// of clients then sending them their player id, world size, and the walls.
         /// 
         /// 1. Send two strings representing integer numbers each terminated by a 
         ///     '\n'. The first number is the player's unique ID. The second is the 
@@ -45,13 +111,14 @@ namespace SnakeGame
         ///     operation. Objects can be sent in any order.
         /// </summary>
         /// <param name="state">the client being processed</param>
-        public void ProcessClientConnection(SocketState state)
+        private void ClientNameReceived(SocketState state)
         {
             // Wait for player name from client
-            while (state.GetData() == "")
-            { }
-            int clientId = snakeId++;
-            string playerName = state.GetData();
+            int clientId = (int)state.ID;
+            string raw = state.GetData();
+            string[] data = Regex.Split(raw, "\n");
+            string playerName = data[0];
+            playerName.Remove(playerName.Length - 3);
             state.RemoveData(0, playerName.Length);
 
             lock (theWorld)
@@ -89,12 +156,22 @@ namespace SnakeGame
             // Send client ID and world size
             Networking.Send(state.TheSocket, clientId + "\n" + theWorld.worldSize + "\n");
             // Send client the walls
-            Networking.Send(state.TheSocket, JsonConvert.SerializeObject(theWorld.walls.Values));
-            // Allow the client to send move commands
-            state.OnNetworkAction = ReceiveMoveCommand;
+            StringBuilder wallsJSON = new();
+            lock (theWorld)
+            {
+                foreach (Wall w in theWorld.walls.Values)
+                {
+                    wallsJSON.Append(JsonConvert.SerializeObject(w) + "\n");
+                }
+            }
+            Networking.Send(state.TheSocket, wallsJSON.ToString());
 
             // Start sending client info on each frame
-            clients.Add(state);
+            Clients.Add(state);
+            Console.WriteLine("Player(" + state.ID + ") \"" + playerName + "\" connected");
+            // Allow the client to send move commands
+            state.OnNetworkAction = ReceiveMoveCommand;
+            Networking.GetData(state);
         }
 
         /// <summary>
@@ -130,7 +207,7 @@ namespace SnakeGame
                 int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 Vector2D head = new(xCor, yCor);
                 // Calculate position of the rest of the body
-                Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X), 
+                Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X),
                     head.Y + (120 * spawnDir.Y));
                 body = new List<Vector2D>();
                 body.Add(tail);
@@ -257,6 +334,17 @@ namespace SnakeGame
 
             // No collisions found
             return false;
+        }
+
+        /// <summary>
+        /// Checks whether or not a given snake is colliding with itself
+        /// </summary>
+        /// <param name="s">snake</param>
+        /// <returns>If the snake collided with itself</returns>
+        private bool AreColliding(Snake s)
+        {
+            List<Vector2D> collidableSegments = s.body.GetRange(0, s.OppositeTurnJointIndex - 1);
+            return AreColliding(s.body.Last(), collidableSegments, 10);
         }
 
         /// <summary>
@@ -404,20 +492,33 @@ namespace SnakeGame
                     foundCmd = true;
                 }
             }
-            
+
             // Process the client's move command
-            if (cmd.moving == "up")
+            lock (theWorld)
             {
-                theWorld.snakes[(int)state.ID].direction = UP;
-            } else if (cmd.moving == "right")
-            {
-                theWorld.snakes[(int)state.ID].direction = RIGHT;
-            } else if (cmd.moving == "down")
-            {
-                theWorld.snakes[(int)state.ID].direction = DOWN;
-            } else if (cmd.moving == "left")
-            {
-                theWorld.snakes[(int)state.ID].direction = LEFT;
+                Snake clientSnake = theWorld.snakes[(int)state.ID];
+                if (cmd.moving == "up")
+                {
+                    clientSnake.direction = UP;
+                }
+                else if (cmd.moving == "right")
+                {
+                    clientSnake.direction = RIGHT;
+                }
+                else if (cmd.moving == "down")
+                {
+                    clientSnake.direction = DOWN;
+                }
+                else if (cmd.moving == "left")
+                {
+                    clientSnake.direction = LEFT;
+                }
+                // Update the client's snake's opposite direction for self-collision checking
+                if (clientSnake.direction == (clientSnake.OppositeDirection * -1))
+                {
+                    clientSnake.OppositeDirection = clientSnake.direction;
+                    clientSnake.OppositeTurnJointIndex = clientSnake.body.Count() - 2;
+                }
             }
         }
 
@@ -430,6 +531,15 @@ namespace SnakeGame
         {
             [JsonProperty]
             public string moving;
+
+            /// <summary>
+            /// Constructs a control command with a moving value of none
+            /// </summary>
+            [JsonConstructor]
+            public ControlCommand()
+            {
+                this.moving = "none";
+            }
         }
 
         #endregion
@@ -439,7 +549,7 @@ namespace SnakeGame
         /// Updates the state of each object in the world (movement, position, booleans) using the 
         /// Server Controller.
         /// </summary>
-        private void OnFrame()
+        public void UpdateWorld()
         {
             // Update the current state of the world
             lock (theWorld)
@@ -471,96 +581,111 @@ namespace SnakeGame
                     }
                 }
 
-                // Move the snakes
+                // Update the snakes
                 foreach (Snake s in theWorld.snakes.Values)
                 {
-                    // Move the head
-                    Vector2D head = s.body.Last() + (s.direction * 3);
-                    s.body.Last().X = head.X;
-                    s.body.Last().Y = head.Y;
-                    // Check for Collision
-                    foreach (Snake snakeBeingHit in theWorld.snakes.Values)
-                    {
-                        if (snakeBeingHit.id == s.id)
+                    s.died = false; // Snakes should only be set to died for one frame max
+                    if (!s.alive)
+                    {   // Lower the Snake's respawn timer
+                        s.alive = ++s.FramesSpentDead >= theWorld.RespawnRate;
+                        if (s.alive)
                         {
-                            // TODO: Overload AreColliding for self collisions
-                            //if (AreColliding(collidingSnake))
-                            //{
-                            //    collidingSnake.died = true;
-                            //    break;
-                            //}
+                            s.body = SpawnSnake();
+                        }
+                    }
+                    else
+                    {   // Move the snake
+                        // Move the head
+                        Vector2D head = s.body.Last() + (s.direction * 3);
+                        s.body.Last().X = head.X;
+                        s.body.Last().Y = head.Y;
+                        // Check for Collision
+                        foreach (Snake snakeBeingHit in theWorld.snakes.Values)
+                        {
+                            if (snakeBeingHit.id == s.id)
+                            {   // Check for self collisions
+                                if (AreColliding(s))
+                                {
+                                    s.died = true;
+                                    break;
+                                }
+                            }
+                            else
+                            {   // Check for collisions with other snakes
+                                if (AreColliding(s.body.Last(), snakeBeingHit.body, 10))
+                                {
+                                    s.died = true;
+                                    s.alive = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!s.died)
+                        {   // See if it died by hitting a wall
+                            foreach (Wall w in theWorld.walls.Values)
+                            {
+                                List<Vector2D> wallSeg = new();
+                                wallSeg.Add(w.p1);
+                                wallSeg.Add(w.p2);
+                                if (AreColliding(s.body.Last(), wallSeg, 50))
+                                {
+                                    s.died = true;
+                                    s.alive = false;
+                                    break;
+                                }
+                            }
                         }
                         else
-                        {
-                            if (AreColliding(s.body.Last(), snakeBeingHit.body, 10))
+                        {   // The snake died hitting a snake
+                            break;
+                        }
+                        if (!s.died)
+                        {   // See if the snake grabbed any powerups
+                            foreach (PowerUp p in theWorld.powerups.Values)
                             {
-                                s.died = true;
-                                s.alive = false;
-                                break;
+                                if (AreColliding(s.body.Last(), p))
+                                {   // The snake collided with a powerup
+                                    s.score++;
+                                    s.FoodInBelly += 12;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (!s.died)
-                    {
-                        // See if it died by hitting a wall
-                        foreach (Wall w in theWorld.walls.Values)
-                        {
-                            List<Vector2D> wallSeg = new();
-                            wallSeg.Add(w.p1);
-                            wallSeg.Add(w.p2);
-                            if (AreColliding(s.body.Last(), wallSeg, 50))
-                            {
-                                s.died = true;
-                                s.alive = false;
-                                break;
-                            }
+                        else
+                        {   // The snake died hitting a wall
+                            break;
                         }
-                    }
-                    else
-                    {   // The snake died hitting a snake
-                        break;
-                    }
-                    if (!s.died)
-                    {
-                        // See if the snake grabbed any powerups
-                        foreach (PowerUp p in theWorld.powerups.Values)
-                        {
-                            if (AreColliding(s.body.Last(), p))
-                            {
-                                s.FoodInBelly += 12;
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {   // The snake died hitting a wall
-                        break;
-                    }
 
-                    // Tail-end movement
-                    if (s.FoodInBelly > 0)
-                    {   // The snake grows one frame worth of movement
-                        s.FoodInBelly -= 1;
-                    }
-                    else
-                    {   // Move the rest of the body starting from the tail
-                        int movement = 3;
-                        // Clean up tail-end joints
-                        Vector2D dist = s.body[1] - s.body[0];
-                        while (dist.Length() < movement)
-                        {
-                            movement -= (int)dist.Length();
-                            s.body.RemoveAt(0);
-                            dist = s.body[1] - s.body[0];
+                        // Tail-end movement
+                        if (s.FoodInBelly > 0)
+                        {   // The snake grows one frame worth of movement
+                            s.FoodInBelly -= 1;
                         }
-                        // Move the tail of the snake
-                        Vector2D newTail = (s.direction * movement) + s.body[0];
-                        s.body[0] = newTail;
+                        else
+                        {   // Move the rest of the body starting from the tail
+                            int movement = 3;
+                            // Clean up tail-end joints
+                            Vector2D dist = s.body[1] - s.body[0];
+                            while (dist.Length() < movement)
+                            {
+                                movement -= (int)dist.Length();
+                                s.body.RemoveAt(0);
+                                dist = s.body[1] - s.body[0];
+                            }
+                            // Move the tail of the snake
+                            Vector2D newTail = (s.direction * movement) + s.body[0];
+                            s.body[0] = newTail;
+                        }
                     }
                 }
             }
+        }
 
-            // Broadcast to the clients
+        /// <summary>
+        /// Broadcasts the current state of the world to each client
+        /// </summary>
+        public void BroadcastWorld()
+        {
             lock (theWorld)
             {
                 // Serialize each object in the world
@@ -568,21 +693,18 @@ namespace SnakeGame
                 foreach (Snake s in theWorld.snakes.Values)
                 {   // Snakes
                     jsonSerialization.Append(JsonConvert.SerializeObject(s) + "\n");
+                    s.join = false;
                 }
                 foreach (PowerUp p in theWorld.powerups.Values)
                 {   // Powerups
                     jsonSerialization.Append(JsonConvert.SerializeObject(p) + "\n");
                 }
                 // Send each client the new state of the world
-                foreach (SocketState c in clients)
+                foreach (SocketState c in Clients)
                 {
                     Networking.Send(c.TheSocket, jsonSerialization.ToString());
                 }
             }
-
-            // TODO: Wait for the frame to finish
-            // Start the next frame
-            OnFrame();
         }
 
         #endregion
