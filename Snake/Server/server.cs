@@ -28,17 +28,20 @@ public class Server
     private static int snakeId = 0;
     private static int powerupId = 0;
     #endregion
-    private static List<SocketState> clients = new();
-
+    #region Directions
+    private static Vector2D UP = new Vector2D(0, -1);
+    private static Vector2D DOWN = new Vector2D(0, 1);
+    private static Vector2D LEFT = new Vector2D(-1, 0);
+    private static Vector2D RIGHT = new Vector2D(1, 0);
+    #endregion
 
     /*
-     * TODO: I think we need to add a project reference to the server controller
-     * 
-     * ServerController serverControl = new(Action updateArrived, Action<SocketState> errorOccurred, World w);
+     * TODO: Abstract logic such that,
+     *      Server is a landing point that doesn't touch the model
+     *      ServerController handles communications between Server and the model
      */
 
-
-
+    #region Server Boot
     /**
      * TODO: Need a collection of all commands that need to be executed on this frame.
      * Or maybe we could just change an attribute (such as direction or boolean flag) when the 
@@ -103,34 +106,48 @@ public class Server
     }
 
     /// <summary>
-    /// Updates the state of each object in the world (movement, position, booleans) using the 
-    /// Server Controller.
+    /// For unit testing
     /// </summary>
-    private static void OnFrame()
+    /// <param name="args"></param>
+    public static void Main(string[] args)
     {
+        // Get the game settings
+        Server s = new();
+
+        // Start listening for and receiving snake-clients
+        TcpListener listener = Networking.StartServer(ProcessClientConnection, 11000);
+
+        // TODO: Finish connection with the client (send them their id, worldsize, and walls).... I think this is done in "OnConnect".
+
+
+        // TODO: Start sending onFrame to the clients
         /*
-         * TODO: OnFrame/Update
+         * while(there are no clients connected) {spin/do nothing}
          * 
-         * foreach(SocketState client in clients) {
-         * 
-         *      -Networking.GetData(SocketState eachClient)
-         *      
-         *      -Update the positions of powerups
-         *      -Receive move commands from clients
-         *      -Update the positions of snakes and handle collisions
-         *      -Send the data back to each client
-         *      
-         * }
+         * while(there are clients connected) {OnFrame/Update()}
          */
-        // Update the current state of the world
 
+        /*
+         * TODO: Allow the client to send move commands ........ 
+         * 
+         * The assignment instructions say
+         *      "The commands should be applied on the next frame after receiving them"
+         *      
+         * So I think we should handle this in OnFrame/Update()
+         * 
+         *      - maybe we could save each move command in a variable (Snakes already have a "dir") 
+         *      then at the start of the for-each-client-loop in OnFrame:
+         *          
+         *          World.snakes[ID].position += velocity * dir;
+         *      
+         *          if(the new command is valid)
+         *              World.snakes[ID].dir = new command;
+         */
 
-        // Send each client the new state of the world
-
-        // Wait for the frame to finish
-        // Start the next frame
     }
+    #endregion
 
+    #region Processing New Clients
     /// <summary>
     /// Processes a new client connection, performs the network protocol 
     /// handshake before, then sends the world's objects on each frame.
@@ -165,22 +182,22 @@ public class Server
             {
                 if (spawnLoc[0].Y < spawnLoc[1].Y)
                 {   // Moving down
-                    spawnDir = new Vector2D(0, 1);
+                    spawnDir = DOWN;
                 }
                 else
                 {   // Moving up
-                    spawnDir = new Vector2D(0, -1);
+                    spawnDir = UP;
                 }
             }
             else
             {
                 if (spawnLoc[0].X < spawnLoc[1].X)
                 {   // Moving right
-                    spawnDir = new Vector2D(1, 0);
+                    spawnDir = RIGHT;
                 }
                 else
                 {   // Moving left
-                    spawnDir = new Vector2D(-1, 0);
+                    spawnDir = LEFT;
                 }
             }
             Snake player = new Snake(clientId, spawnLoc, spawnDir, playerName);
@@ -209,11 +226,11 @@ public class Server
     private static List<Vector2D> SpawnSnake()
     {
         // Prepare a list of Snake segments to return
-        List<Vector2D> segments;
+        List<Vector2D> body;
 
         // Choose a random axis-aligned orientation for snake
         Random rng = new();
-        Vector2D spawnDir = new(1, 0); // assume vertical
+        Vector2D spawnDir = UP; // assume vertical
         if (rng.Next(2) == 0) // 50% chance to swap to horizontal
         {
             spawnDir.Rotate(90);
@@ -223,77 +240,197 @@ public class Server
             spawnDir *= -1;
         }
 
-        // Find a straight, empty list of vectors that don't collide with anything.
+        // Find a valid spawn location for the snake's starting segment
         do
         {
-            // Starting at a random (head) location
+            // Randomly place the head
             int xCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
             int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
             Vector2D head = new(xCor, yCor);
+            // Calculate position of the rest of the body
+            Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X), head.Y + (120 * spawnDir.Y));
+            body = new List<Vector2D>();
+            body.Add(tail);
+            body.Add(head);
+        } while (InvalidSpawn(body));
 
-            // (Re)set the segment-list to contain a single (head) segment
-            segments = new();
-            segments.Add(head);
-
-            // Calculate the distance between each snake segment.
-            int framesWorth = 12; // The default is 12 frames worth of movement
-            Vector2D increment = new Vector2D(spawnDir) * framesWorth;
-
-            // Add the trailing segments to the list
-            int snakeSize = 10; // TODO: I think "snakeSize" and "framesworth" can be defined globally by the constructor after reading the settings file.
-            for (int i = 0; i < snakeSize - 1; i++)
-                segments.Add(segments.Last() + increment);
-
-        // Repeat this process until a straight, empty, non-colliding list of vectors is found
-        } while (AreColliding(segments)); 
-
-        // Then return that list of vectors
-        return segments;
+        // Then return the newly spawned snake's body
+        return body;
     }
 
     /// <summary>
-    /// Overloaded method of collision detection for a list of snake segments.
-    /// This method just calls the primary "AreColliding" method to check for collisions
-    /// between each snake segment and each world object.
+    /// Checks whether or not a given snake body is an Invalid spawn location
     /// </summary>
     /// <param name="snake"></param>
-    /// <returns></returns>
+    /// <returns>Invalid spawn location?</returns>
     /// <exception cref="NotImplementedException"></exception>
-    private static bool AreColliding(List<Vector2D> snake)
+    private static bool InvalidSpawn(List<Vector2D> snake)
     {
         // Check for a collision between each snake-segment and every single collidable world object
-        foreach(Vector2D segment in snake)
-        {
-            // walls
-            foreach(Wall w in theWorld.walls.Values)
-                if(AreColliding(segment, w))
-                    return true;
-            // other snakes
-            foreach (Snake s in theWorld.snakes.Values)
-                if (AreColliding(segment, s))
-                    return true;
-            // power-ups
-            foreach (PowerUp pUp in theWorld.powerups.Values)
-                if (AreColliding(segment, pUp))
-                    return true;
+        foreach (Wall w in theWorld.walls.Values)
+        {   // walls
+            List<Vector2D> wall = new();
+            wall.Add(w.p1);
+            wall.Add(w.p2);
+            if (AreColliding(snake.Last(), wall, 50))
+                return true;
+        }
+        foreach (Snake s in theWorld.snakes.Values)
+        {   // other snakes
+            if (AreColliding(snake.Last(), s.body, 10))
+                return true;
         }
 
+        // There were no collisions
+        return false;
+    }
+    #endregion
+
+    #region Updating To Clients
+    /// <summary>
+    /// Updates the state of each object in the world (movement, position, booleans) using the 
+    /// Server Controller.
+    /// </summary>
+    private static void OnFrame()
+    {
+        /*
+         * TODO: OnFrame/Update
+         * 
+         * foreach(SocketState client in clients) {
+         * 
+         *      -Networking.GetData(SocketState eachClient)
+         *      
+         *      -Update the positions of powerups
+         *      -Receive move commands from clients
+         *      -Update the positions of snakes and handle collisions
+         *      -Send the data back to each client
+         *      
+         * }
+         */
+        // Update the current state of the world
+
+
+        // Send each client the new state of the world
+
+        // Wait for the frame to finish
+        // Start the next frame
+    }
+
+    #endregion
+
+    #region Collision Checking
+    /// <summary>
+    /// Checks whether or not a given head is colldiing with an object
+    /// </summary>
+    /// <param name="head">Vector2D representing a head</param>
+    /// <param name="obj">object being collided with</param>
+    /// <param name="width">width of the object being collided with</param>
+    /// <returns>Whether or not the head and object have collided</returns>
+    private static bool AreColliding(Vector2D head, List<Vector2D> obj, int width)
+    {
+        // Check the collision barrier one segment at a time
+        Vector2D topLeft, bottomRight;
+        for (int i = 0; i < obj.Count - 1; i++)
+        {
+            Vector2D p1 = obj[i], p2 = obj[i + 1];
+            CalculateCollisionBarrier(p1, p2, width, out topLeft, out bottomRight);
+            // Check for collision
+            if ((head.X > topLeft.X && head.X < bottomRight.X) &&
+                (head.Y > topLeft.Y && head.Y < bottomRight.Y))
+            {
+                return true;
+            }
+        }
+
+        // No collisions found
         return false;
     }
 
     /// <summary>
-    /// TODO: This method might need to be overloaded once for each possible type-pair of arguments.
-    /// Returns a boolean indicating if the two argued world objects are colliding.
+    /// Checks whether or not a given head is colliding with a powerup
+    /// 
+    /// Powerups have are 16 by 16 units
     /// </summary>
-    /// <param name="obj1"></param>
-    /// <param name="obj2"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    private static bool AreColliding(Object obj1, Object obj2)
+    /// <param name="head">Vector2D representing a head</param>
+    /// <param name="p">powerup being collided with</param>
+    /// <returns>Whether or not the head and powerup have collided</returns>
+    private static bool AreColliding(Vector2D head, PowerUp p)
     {
-        throw new NotImplementedException();
+        // Calculate Collision Barrier
+        Vector2D topLeft = new Vector2D(p.loc.X - 16, p.loc.Y - 16);
+        Vector2D bottomRight = new Vector2D(p.loc.X + 16, p.loc.Y + 16);
+        // Check for collision
+        return (head.X > topLeft.X && head.X < bottomRight.X) &&
+                (head.Y > topLeft.Y && head.Y < bottomRight.Y);
     }
 
+    /// <summary>
+    /// Calculates the top left and bottom right corners of a collision barrier
+    /// </summary>
+    /// <param name="p1">start of segment</param>
+    /// <param name="p2">end of segment</param>
+    /// <param name="width">width of segment</param>
+    /// <param name="topLeft"></param>
+    /// <param name="bottomRight"></param>
+    private static void CalculateCollisionBarrier(Vector2D p1, Vector2D p2, int width,
+        out Vector2D topLeft, out Vector2D bottomRight)
+    {
+        // Calcualte direction
+        Vector2D segmentDir;
+        bool isVertical = p1.X == p2.X;
+        if (isVertical)
+        {   // Vertical segment
+            if (p1.Y < p2.Y)
+            {
+                segmentDir = DOWN;
+            }
+            else
+            {
+                segmentDir = UP;
+            }
+        }
+        else
+        {   // Horizontal segment
+            if (p1.X < p2.X)
+            {
+                segmentDir = RIGHT;
+            }
+            else
+            {
+                segmentDir = LEFT;
+            }
+        }
+        // Calculate corners of this segment of the collision barrier
+        if (isVertical)
+        {
+            if (segmentDir == DOWN)
+            {
+                topLeft = new Vector2D(p1.X - (width / 2) - 10, p1.Y - 10);
+                bottomRight = new Vector2D(p2.X + (width / 2) + 10, p2.Y + 10);
+            }
+            else
+            {
+                topLeft = new Vector2D(p2.X - (width / 2) - 10, p2.Y - 10);
+                bottomRight = new Vector2D(p1.X + (width / 2) + 10, p2.Y + 10);
+            }
+        }
+        else
+        {
+            if (segmentDir == RIGHT)
+            {
+                topLeft = new Vector2D(p1.X - 10, p1.Y - (width / 2) - 10);
+                bottomRight = new Vector2D(p2.X + 10, p2.Y + (width / 2) + 10);
+            }
+            else
+            {
+                topLeft = new Vector2D(p2.X - 10, p2.Y - (width / 2) - 10);
+                bottomRight = new Vector2D(p1.X + 10, p1.Y + (width / 2) + 10);
+            }
+        }
+    }
+    #endregion
+
+    #region Receiving From Clients
     /// <summary>
     /// Receive a movement command from the client and update the client's 
     /// snake's direction.
@@ -342,46 +479,6 @@ public class Server
         public string moving;
     }
 
+    #endregion
 
-
-    /// <summary>
-    /// For unit testing
-    /// </summary>
-    /// <param name="args"></param>
-    public static void Main(string[] args)
-    {
-        // Get the game settings
-        Server s = new();
-
-        // Start listening for and receiving snake-clients
-        TcpListener listener = Networking.StartServer(ProcessClientConnection, 11000);
-
-        // TODO: Finish connection with the client (send them their id, worldsize, and walls).... I think this is done in "OnConnect".
-
-
-        // TODO: Start sending onFrame to the clients
-        /*
-         * while(there are no clients connected) {spin/do nothing}
-         * 
-         * while(there are clients connected) {OnFrame/Update()}
-         */
-
-        /*
-         * TODO: Allow the client to send move commands ........ 
-         * 
-         * The assignment instructions say
-         *      "The commands should be applied on the next frame after receiving them"
-         *      
-         * So I think we should handle this in OnFrame/Update()
-         * 
-         *      - maybe we could save each move command in a variable (Snakes already have a "dir") 
-         *      then at the start of the for-each-client-loop in OnFrame:
-         *          
-         *          World.snakes[ID].position += velocity * dir;
-         *      
-         *          if(the new command is valid)
-         *              World.snakes[ID].dir = new command;
-         */
-
-    }
 }

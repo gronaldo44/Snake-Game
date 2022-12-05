@@ -8,6 +8,7 @@
     /// </summary>
     public class ServerController
     {
+        private static List<SocketState> clients = new();
         /**
          * TODO: constructor(Action updateArrived, Action<SocketState> errorOccurred, World w)
          * 
