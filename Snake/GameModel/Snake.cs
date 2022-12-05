@@ -3,6 +3,7 @@ using SnakeGame;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Net;
 
 /// <summary>
@@ -16,7 +17,7 @@ public class Snake
     [JsonProperty(PropertyName = "snake")]
     public int id { get; private set; }      // Unique id
     [JsonProperty(PropertyName = "body")]
-    public List<Vector2D> body { get; private set; } = new();    // represents the entire body; first index tail; last index head
+    public List<Vector2D> body = new();    // represents the entire body; first index tail; last index head
     [JsonProperty(PropertyName = "dir")]
     public Vector2D direction { get; set; } = new();  // Snake's orientation
     [JsonProperty(PropertyName = "name")]
@@ -33,8 +34,9 @@ public class Snake
     public bool join;   // Did the snake join on this frame?
     #endregion
     public int FoodInBelly;       // For when a snake gets a powerup
-    //public int FramesSpentDead;   // For when a snake is waiting to respawn
-
+    public int FramesSpentDead;   // For when a snake is waiting to respawn
+    public int OppositeTurnJointIndex = 1;   // Index in the list of snake joints
+    public Vector2D OppositeDirection = new();  // What direction is opposite of the snake's general movement
 
     /// <summary>
     /// Default constructor for JSON serialization
@@ -59,6 +61,7 @@ public class Snake
         this.name = name;
         this.alive = true;
         this.join = true;
+        this.OppositeDirection = direction * -1;
     }
 
     /// <summary>
