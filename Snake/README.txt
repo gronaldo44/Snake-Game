@@ -108,10 +108,13 @@ their snakes size (and score) will increase.
 		# TODO: Respawning snakes when they die
 				COMPLETE
 		# TODO: Refactoring code to separate concnerns (we have long blocks of logic that could be split into helper meth)
-		# TODO: Handling errors/Client disconnects
-		# TODO: Closing the server
+				COMPLETE (we should do this again before submitting)
+		# TODO: Handling socketstate errors (should we even do this? [check instructions])
+		# TODO: Verify that disconnected clients are being removed properly
 		# TODO: Print into the console when the server is ready for clients
+				COMPLETE
 		# TODO: Receive move commands from the client
+				COMPLETE
 		# TODO: Wrap snakes around the world
 		# TODO: snake parameters are being serialized in the wrong order
-			# TODO: somehow the direction vector got messed up could be related to this but might be its own problem
+		# TODO: Debug/Fix segment collisions (self-collisions of snakes, wall collisions, and collisions with other snakes)
