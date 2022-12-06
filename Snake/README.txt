@@ -118,3 +118,11 @@ their snakes size (and score) will increase.
 		# TODO: Wrap snakes around the world
 		# TODO: snake parameters are being serialized in the wrong order
 		# TODO: Debug/Fix segment collisions (self-collisions of snakes, wall collisions, and collisions with other snakes)
+			WALLS:				COMPLETE
+			SNAKES:				TODO
+			Self-collisions:	TODO
+	
+	#What is left 12/7
+		# TODO: check the diameters of each object (snakes, powerups, and walls) for collision barrier
+		# TODO: Snakes need to die when they collide with snakes and themselves
+		# TODO: reset snake respawn timers when they die

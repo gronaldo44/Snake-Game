@@ -1,6 +1,8 @@
 ﻿using NetworkUtil;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -27,7 +29,7 @@ namespace SnakeGame
         private static Vector2D RIGHT = new Vector2D(1, 0);
         #endregion
         #region Client Params
-        public List<SocketState> Clients { get; private set; } = new();
+        public Dictionary<long, SocketState> Clients { get; private set; } = new();
         #endregion
 
         #region Controller Initialization
@@ -123,7 +125,6 @@ namespace SnakeGame
             string raw = state.GetData();
             string[] data = Regex.Split(raw, "\n");
             string playerName = data[0];
-            playerName.Remove(playerName.Length - 3);
             state.RemoveData(0, playerName.Length);
 
             // Find an empty location in the world to place the snake
@@ -150,7 +151,10 @@ namespace SnakeGame
             Networking.Send(state.TheSocket, wallsJSON.ToString());
 
             // Start sending client info on each frame
-            Clients.Add(state);
+            lock (Clients)
+            {
+                Clients.Add(state.ID, state);
+            }
             Console.WriteLine("Player(" + state.ID + ") \"" + playerName + "\" connected");
             // Allow the client to send move commands
             state.OnNetworkAction = ReceiveMoveCommand;
@@ -216,12 +220,12 @@ namespace SnakeGame
                 List<Vector2D> wall = new();
                 wall.Add(w.p1);
                 wall.Add(w.p2);
-                if (AreColliding(powerup, wall, 50))
+                if (AreColliding(powerup, 16, wall, 50))
                     return true;
             }
             foreach (Snake s in theWorld.snakes.Values)
             {   // snakes
-                if (AreColliding(powerup, s.body, 10))
+                if (AreColliding(powerup, 16, s.body, 10))
                     return true;
             }
             foreach (PowerUp p in theWorld.powerups.Values)
@@ -290,7 +294,7 @@ namespace SnakeGame
             }
 
             // If one rectangle is above other
-            if (rect1BR.Y > rect2TL.Y || rect2BR.Y > rect1TL.Y)
+            if (rect1BR.Y < rect2TL.Y || rect2BR.Y < rect1TL.Y)
             {
                 return false;
             }
@@ -354,7 +358,7 @@ namespace SnakeGame
         private bool AreColliding(Snake s)
         {
             List<Vector2D> collidableSegments = s.body.GetRange(0, s.OppositeTurnJointIndex - 1);
-            return AreColliding(s.body.Last(), collidableSegments, 10);
+            return AreColliding(s.body.Last(), 10, collidableSegments, 10);
         }
 
         /// <summary>
@@ -364,17 +368,22 @@ namespace SnakeGame
         /// <param name="obj">object being collided with</param>
         /// <param name="width">width of the object being collided with</param>
         /// <returns>Whether or not the vector and object have collided</returns>
-        private bool AreColliding(Vector2D v, List<Vector2D> obj, int width)
+        private bool AreColliding(Vector2D v, int vw, List<Vector2D> obj, int objWidth)
         {
+            // Find rectangle representing the vector being checked for collision
+            Vector2D vTopLeft = new(), vBottomRight = new();
+            vTopLeft.X = v.X - (vw / 2);
+            vTopLeft.Y = v.Y - (vw / 2);
+            vBottomRight.X = v.X + (vw / 2);
+            vBottomRight.Y = v.Y + (vw / 2);
             // Check the collision barrier one segment at a time
-            Vector2D topLeft, bottomRight;
+            Vector2D objTopLeft, objBottomRight;
             for (int i = 0; i < obj.Count - 1; i++)
             {
                 Vector2D p1 = obj[i], p2 = obj[i + 1];
-                CalculateCollisionBarrier(p1, p2, width, out topLeft, out bottomRight);
+                CalculateCollisionBarrier(p1, p2, objWidth, out objTopLeft, out objBottomRight);
                 // Check for collision
-                if ((v.X > topLeft.X && v.X < bottomRight.X) &&
-                    (v.Y > topLeft.Y && v.Y < bottomRight.Y))
+                if (IsIntersectingRectangles(vTopLeft, vBottomRight, objTopLeft, objBottomRight))
                 {
                     return true;
                 }
@@ -449,7 +458,7 @@ namespace SnakeGame
                 else
                 {
                     topLeft = new Vector2D(p2.X - (width / 2) - 10, p2.Y - 10);
-                    bottomRight = new Vector2D(p1.X + (width / 2) + 10, p2.Y + 10);
+                    bottomRight = new Vector2D(p1.X + (width / 2) + 10, p1.Y + 10);
                 }
             }
             else
@@ -474,9 +483,12 @@ namespace SnakeGame
         /// </summary>
         public void GetClientData()
         {
-            foreach (SocketState c in Clients)
+            lock (Clients)
             {
-                Networking.GetData(c);
+                foreach (SocketState c in Clients.Values)
+                {
+                    Networking.GetData(c);
+                }
             }
         }
 
@@ -488,8 +500,12 @@ namespace SnakeGame
         private void ReceiveMoveCommand(SocketState state)
         {
             // Get data from the client
-            string raw = state.GetData();
-            state.RemoveData(0, raw.Length);
+            string raw = "";
+            lock (state)
+            {
+                raw = state.GetData();
+                state.RemoveData(0, raw.Length);
+            }
             string[] data = Regex.Split(raw, "\n");
 
             // Check if they sent a move command
@@ -566,8 +582,16 @@ namespace SnakeGame
                 SpawnPowerup();
 
                 // Update the snakes
+                List<int> disconnectedSnakes = new();
                 foreach (Snake s in theWorld.snakes.Values)
                 {
+                    // See if the snake is still connected to the server
+                    if (s.dc)
+                    {
+                        disconnectedSnakes.Add(s.id);
+                        break;
+                    }
+
                     s.died = false; // Clean up any snakes that died last frame
                     if (!s.alive)
                     {   // Lower the Snake's respawn timer
@@ -619,6 +643,10 @@ namespace SnakeGame
                             MoveTailOfSnake(s);
                         }
                     }
+                }
+                foreach(int snake in disconnectedSnakes)
+                {
+                    theWorld.snakes.Remove(snake);
                 }
             }
         }
@@ -694,7 +722,7 @@ namespace SnakeGame
                 }
                 else
                 {   // Check for collisions with other snakes
-                    if (AreColliding(s.body.Last(), snakeBeingHit.body, 10))
+                    if (AreColliding(s.body.Last(), 10, snakeBeingHit.body, 10))
                     {
                         return true;
                     }
@@ -705,9 +733,18 @@ namespace SnakeGame
             foreach (Wall w in theWorld.walls.Values)
             {
                 List<Vector2D> wallSeg = new();
-                wallSeg.Add(w.p1);
-                wallSeg.Add(w.p2);
-                if (AreColliding(s.body.Last(), wallSeg, 50))
+                if ((w.p1.Y == w.p2.Y && w.p2.X > w.p1.X)
+                    || (w.p1.X == w.p2.X && w.p2.Y > w.p1.Y))
+                {   // Wall is drawn going right or down
+                    wallSeg.Add(w.p2);
+                    wallSeg.Add(w.p1);
+                }
+                else
+                {   // Wall is drawn going left or up
+                    wallSeg.Add(w.p1);
+                    wallSeg.Add(w.p2);
+                }
+                if (AreColliding(s.body.Last(), 10, wallSeg, 50))
                 {
                     return true;
                 }
@@ -810,10 +847,10 @@ namespace SnakeGame
         /// </summary>
         public void BroadcastWorld()
         {
+            // Serialize each object in the world
+            StringBuilder jsonSerialization = new();
             lock (theWorld)
             {
-                // Serialize each object in the world
-                StringBuilder jsonSerialization = new();
                 foreach (Snake s in theWorld.snakes.Values)
                 {   // Snakes
                     jsonSerialization.Append(JsonConvert.SerializeObject(s) + "\n");
@@ -823,17 +860,32 @@ namespace SnakeGame
                 {   // Powerups
                     jsonSerialization.Append(JsonConvert.SerializeObject(p) + "\n");
                 }
-                // Send each client the new state of the world
-                foreach (SocketState c in Clients)
+            }
+            // Send each client the new state of the world
+            lock (Clients)
+            {
+                List<long> disconnectedClients = new();
+                // Send all clients the current state of the world
+                foreach (SocketState c in Clients.Values)
                 {
                     if (!c.TheSocket.Connected)
-                    {
-                        Clients.Remove(c);
+                    {   // This client disconnected
+                        disconnectedClients.Add(c.ID);
                     }
                     else
                     {
                         Networking.Send(c.TheSocket, jsonSerialization.ToString());
                     }
+                }
+                // Remove disconnected clients
+                foreach(long id in disconnectedClients)
+                {
+                    lock (theWorld)
+                    {
+                        theWorld.snakes[(int)id].dc = true;
+                    }
+                    Console.WriteLine("Client " + id + " disconnected.");
+                    Clients.Remove(id);
                 }
             }
         }
