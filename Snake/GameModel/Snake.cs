@@ -37,6 +37,7 @@ public class Snake
     public int FramesSpentDead;   // For when a snake is waiting to respawn
     public int OppositeTurnJointIndex = 1;   // Index in the list of snake joints
     public Vector2D OppositeDirection = new();  // What direction is opposite of the snake's general movement
+    public string MoveRequest = "none";
 
     /// <summary>
     /// Default constructor for JSON serialization
