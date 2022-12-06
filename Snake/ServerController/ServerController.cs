@@ -290,7 +290,7 @@ namespace SnakeGame
             }
 
             // If one rectangle is above other
-            if (rect1BR.Y < rect2TL.Y || rect2BR.Y < rect1TL.Y) // TODO: recheck logic
+            if (rect1BR.Y > rect2TL.Y || rect2BR.Y > rect1TL.Y)
             {
                 return false;
             }
@@ -360,11 +360,11 @@ namespace SnakeGame
         /// <summary>
         /// Checks whether or not a given vector is colliding with an object
         /// </summary>
-        /// <param name="vect">vector</param>
+        /// <param name="v">vector</param>
         /// <param name="obj">object being collided with</param>
         /// <param name="width">width of the object being collided with</param>
         /// <returns>Whether or not the vector and object have collided</returns>
-        private bool AreColliding(Vector2D vect, List<Vector2D> obj, int width)
+        private bool AreColliding(Vector2D v, List<Vector2D> obj, int width)
         {
             // Check the collision barrier one segment at a time
             Vector2D topLeft, bottomRight;
@@ -373,8 +373,8 @@ namespace SnakeGame
                 Vector2D p1 = obj[i], p2 = obj[i + 1];
                 CalculateCollisionBarrier(p1, p2, width, out topLeft, out bottomRight);
                 // Check for collision
-                if ((vect.X > topLeft.X && vect.X < bottomRight.X) &&
-                    (vect.Y > topLeft.Y && vect.Y < bottomRight.Y))
+                if ((v.X > topLeft.X && v.X < bottomRight.X) &&
+                    (v.Y > topLeft.Y && v.Y < bottomRight.Y))
                 {
                     return true;
                 }
@@ -449,7 +449,7 @@ namespace SnakeGame
                 else
                 {
                     topLeft = new Vector2D(p2.X - (width / 2) - 10, p2.Y - 10);
-                    bottomRight = new Vector2D(p1.X + (width / 2) + 10, p2.Y + 10); // TODO: bottom right is p1
+                    bottomRight = new Vector2D(p1.X + (width / 2) + 10, p2.Y + 10);
                 }
             }
             else
@@ -788,7 +788,7 @@ namespace SnakeGame
             }
             else
             {
-                s.direction = moveRequest; // TODO: it could be here, maybe we should validate before assigning
+                s.direction = moveRequest;
             }
 
             // Place a new joint where the head is
