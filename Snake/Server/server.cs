@@ -55,6 +55,7 @@ public class Server
         Server s = new();
         // Start listening for and receiving snake-clients
         TcpListener listener = Networking.StartServer(controller.ClientConnection, 11000);
+        Console.WriteLine("Server is now accepting clients.");
 
         // Start updating and broadcasting the state of the world to each client
         Stopwatch serverFPS = new(), frameTimer = new();
@@ -62,6 +63,7 @@ public class Server
         serverFPS.Start();
         while (true)
         {   // Loop for each frame until the server is stopped
+            controller.GetClientData();
             controller.UpdateWorld();
             controller.BroadcastWorld();
             
