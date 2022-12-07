@@ -1,17 +1,40 @@
-#authors Ronald Foster, Shem Snow
+# Authors: Ronald Foster & Shem Snow
+# Last Edited: 12/08/2022
+
+
+Description
+------------------------
+The solution runs a multiplayer Snake game that can be played by multiple people either online or on one machine.
+This README document outlines the organization, design decisions, and challenges we faced during development.
+
+
+Instructions for playing the game
+---------------------------------
+The server must be started before any of the clients otherwise the game will not run. A client must be run for each player
+in the game. Start the server by running the "Server.exe" application within the "Server" project.
+Start the client by running the "MainPage.xaml.cs" application within the "SnakeClient" project. Clients must then connect 
+to the server by entering the server's name and their own "PlayerName" then clicking on the "Connect" button.
+If running on one machine, "localhost" is the server's name.
+
+Once the connection is made, each player controls their snake's movement via the WASD keys.
+
 
 # Organization
 ------------------
-We used the Model, View, Controller organization style to separate each of those three concerns into their own Folder.
+We used the Model, View, Controller design pattern to separate each of those three concerns into their own projects.
 
 -The model consists of a World class that represents the world at any given time by containing collections of 
 all the objects that exist in the game (snakes, powerups, walls). Each one of those objects is defined by their own class
-which describes their current state in the game (location, alive, etc..). In other words, the model is just all the world 
-data at a particular instance in time. As the program runs, objects in the world will change.
+which describes their current state in the game (location, alive, etc..). In other words, the model is just all the objects 
+that can exist in the world plus a world class which saves and maintains the current state of the game.
 
--The controller abstracts all of the networking/communication concerns of our program. We used two controller classes in 
-our program. The first is the network controller from PS7 that manages the sockets between the server and clients. The 
-second contains multiple 'listeners'/methods which will be called any time the user performs an action that involves the server. 
+-There are a total of three controllers:
+1. "NetworkController" abstracts all of the networking/communication concerns of our program. It uses sockets to manage 
+the communication between a server and its clients.
+2. "GameController" manages the server-client communications from the client's end by using multiple 'listeners'/methods 
+that 'activate' every time the user performs an action that involves the server.
+
+This controller is a concern of the client (each player) and so one will be created for each player.
 This is done by giving the Game Controller a reference to the Network Controller then, in the Game Controller, setting a 
 delegate within the Network Controller's socket state (OnNetworkAction) to one of Game Controller's own methods. 
 
@@ -20,12 +43,11 @@ application and two important classes: "MainPage" which handled the actual view/
 and "WorldPanel" which simply drew pictures onto the MainPage.
 
 
-# Design Decisions
-------------------
-We produced the program in multiple steps/stages formated as "version.stage.concern" and noted the start and completion
-date of each one.
-Each day we met, our goal would be to finish all of the concerns within one stage. 0.3.x for example was all of the Model's 
-concerns. The completed program would be version 1.0.0 and any additional features could be added after completion.
+# Design Decisions for PS8 (the Client)
+---------------------------------------
+We wrote the program in multiple stages calling using the format: "version.stage.concern".
+Each day we met, our goal was to focus mostly on the concerns of one stage.
+The completed program is version 1.0.0 and any additional features will be added after completion.
 
 
 	Vers	Description					Skeleton Written	Completed
@@ -40,8 +62,8 @@ concerns. The completed program would be version 1.0.0 and any additional featur
 	0.4.4: Draw Powerups and Snakes				11/17				11/19
 	1.0.0: Additional Features				11/26				11/27
 
-# Design Notes
---------------
+# Design Notes for PS8 (the Client)
+-------------------------------------
 	# 0.1
 		- The MainPage has a reference to the GameController as well as a button and text-entries for initiating
 		the connnection. To initiate a connection, it simply uses its controller reference to call connect.
@@ -90,16 +112,19 @@ concerns. The completed program would be version 1.0.0 and any additional featur
 		x and y coordinates of the start and end points of each wall sprite. Whether or not the value of start was 
 		less than the value of end would determine which direction to draw the sprites in.
 
-Instructions for playing
-------------------------
-Each player in the snake game must communicate to the server using their own SnakeClient program (that's this program).
-Separately, a SnakeServer program will be running the actual game. The player can run this program on its own but it will 
-not connect to a game unless the server is already be running. To connect, enter a server name and player name then click
-on "Connect". There is already a default server name of localhost for when the server is played on a single computer by 
-only one person. After the connection is made, the player moves around using the WASD keys and as they collect powerups,
-their snakes size (and score) will increase.
 
-#PS9 NOTES
+
+# Design Decisions for PS9 (the Server)
+---------------------------------------
+
+
+# Design Notes for PS9 (the Server)
+------------------------------------
+
+
+
+
+----------------------------------------------  TODO: everything below this line ------------------------------------- 
 	#Project structure | 11/30
 		# TODO: learn about reading xml files and start implementing the Server class by updating the model
 			COMPLETE
@@ -126,3 +151,6 @@ their snakes size (and score) will increase.
 		# TODO: check the diameters of each object (snakes, powerups, and walls) for collision barrier
 		# TODO: Snakes need to die when they collide with snakes and themselves
 		# TODO: reset snake respawn timers when they die
+
+
+
