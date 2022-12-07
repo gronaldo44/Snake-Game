@@ -17,24 +17,26 @@ namespace SnakeGame
     /// </summary>
     public class ServerController
     {
-        #region Model Params
+        #region Global Fields
+        // Model Params
         public World theWorld { get; private set; } = new();
         private int powerupId = 0;
         private int powerupSpawnDelay = 200;    // How long to wait before spawning the first powerup
-        #endregion
-        #region Directions
+
+        // Directions
         private static Vector2D UP = new Vector2D(0, -1);
         private static Vector2D DOWN = new Vector2D(0, 1);
         private static Vector2D LEFT = new Vector2D(-1, 0);
         private static Vector2D RIGHT = new Vector2D(1, 0);
-        #endregion
-        #region Client Params
+
+        // Client Params
         public Dictionary<long, SocketState> Clients { get; private set; } = new();
         #endregion
 
         #region Controller Initialization
         /// <summary>
-        /// Constructs a Server Controller with game mechanics based on a settings.xml file.
+        /// Constructs a Server Controller with game settings/mechanics read from the
+        /// "settings.xml" file.
         /// </summary>
         public ServerController()
         {
@@ -93,7 +95,8 @@ namespace SnakeGame
 
         #region Processing New Clients
         /// <summary>
-        /// Waits for the newly connected client to send their name.
+        /// Listens to a newly connected client until they send their name then transfers control
+        /// to the "ClientNameReceived" method.
         /// </summary>
         /// <param name="state">the client</param>
         public void ClientConnection(SocketState state)
@@ -107,15 +110,15 @@ namespace SnakeGame
         /// Processes a client who has sent their name by adding them to the list 
         /// of clients then sending them their player id, world size, and the walls.
         /// 
-        /// 1. Send two strings representing integer numbers each terminated by a 
+        /// 1. The client sends two strings representing integer numbers each terminated by a 
         ///     '\n'. The first number is the player's unique ID. The second is the 
-        /// size of the world, representing both width and height.
-        /// 2. Send the client all of the walls as JSON objects, each separated by 
+        ///     size of the world, representing both width and height.
+        /// 2. This method sends the client all of the walls as JSON objects, each separated by 
         ///     a '\n'.
-        /// 3. Continually send the current state of the rest of the game on every 
-        ///     frame. Each object ends with a '\n' characer. There is no guarantee 
-        ///     that all objects will be included in a single network send/receive 
-        ///     operation. Objects can be sent in any order.
+        /// 3. Then continually sends the current state of the rest of the game on every 
+        ///     frame. Each object ends with a '\n' characer and there is no guarantee 
+        ///     that all objects will be sent in order or be included in a single network 
+        ///     send/receive operation.
         /// </summary>
         /// <param name="state">the client being processed</param>
         private void ClientNameReceived(SocketState state)
@@ -162,8 +165,8 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Randomly finds an empty spot in the world and returns a newly spawned 
-        /// snake segment there. 
+        /// Finds a randomly-chosen empty spot in the world that can fit a snake and returns a 
+        /// list of 2DVectors spanning that space. 
         /// 
         /// Snakes are 120 units upon respawn.
         /// </summary>
@@ -175,7 +178,7 @@ namespace SnakeGame
 
             // Choose a random axis-aligned orientation for snake
             Random rng = new();
-            Vector2D spawnDir = UP * 1; // assume vertical
+            Vector2D spawnDir = UP; // assume vertical
             if (rng.Next(2) == 0) // 50% chance to swap to horizontal
             {
                 spawnDir.Rotate(90);
@@ -192,15 +195,16 @@ namespace SnakeGame
                 int xCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 Vector2D head = new(xCor, yCor);
-                // Calculate position of the rest of the body
+                // Calculate where the tail should be based on spawn direction and default snake length (120).
                 Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X),
                     head.Y + (120 * spawnDir.Y));
                 body = new List<Vector2D>();
                 body.Add(tail);
                 body.Add(head);
+            // Check if placing the snake here will result in a collision. If so, repeat the loop.
             } while (InvalidSpawn(body));
 
-            // Then return the newly spawned snake's body
+            // Then return the newly spawned snake's body as a list with two vectors: {head, tail}.
             return body;
         }
 
@@ -270,14 +274,14 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Checks if two rectangles given by their topleft and botright corners 
+        /// Checks if two rectangles defined by the argued topleft and botright corners 
         /// overlap. 
         /// </summary>
         /// <param name="rect1TL">rectangle one top left corner</param>
         /// <param name="rect1BR">rectangle one bottom right corner</param>
         /// <param name="rect2TL">rectangle two top left corner</param>
         /// <param name="rect2BR">rectangle two bottom right corner</param>
-        /// <returns>whether or not the rectangles intersect</returns>
+        /// <returns>a boolean indicating whether or not the rectangles intersect</returns>
         private bool IsIntersectingRectangles(Vector2D rect1TL, Vector2D rect1BR,
                               Vector2D rect2TL, Vector2D rect2BR)
         {
@@ -302,7 +306,7 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Checks whether or not a body of a newly spawned snake is colliding with 
+        /// Checks whether or not the body of a newly spawned snake is colliding with 
         /// an object
         /// 
         /// Newly spawned snakes are 120 units long with one straight axis-aligned 
@@ -652,7 +656,7 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Moves the tail of a snake
+        /// Moves the tail of a snake forward
         /// </summary>
         /// <param name="s"></param>
         private void MoveTailOfSnake(Snake s)
@@ -674,7 +678,7 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Calculates which direction a given segment is moving in
+        /// Calculates which direction a given snake-segment is moving in.
         /// </summary>
         /// <param name="p1">Joint hte segment is starting from</param>
         /// <param name="p2">Joint the segment is moving towards</param>
@@ -704,7 +708,8 @@ namespace SnakeGame
         }
 
         /// <summary>
-        /// Returns if a snake died by colliding with either a snake or a wall. 
+        /// Returns a boolean that indicates if a snake is currently colliding with either another 
+        /// snake or a wall and should therefor be dead.
         /// </summary>
         /// <param name="s">Snake being checked for death</param>
         /// <returns>Whether or not the snake died</returns>
