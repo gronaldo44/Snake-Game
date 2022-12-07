@@ -29,16 +29,16 @@ which describes their current state in the game (location, alive, etc..). In oth
 that can exist in the world plus a world class which saves and maintains the current state of the game.
 
 -There are a total of three controllers:
-1. "NetworkController" abstracts all of the networking/communication concerns of our program. It uses sockets to manage 
-the communication between a server and its clients.
-2. "GameController" manages the server-client communications from the client's end by using multiple 'listeners'/methods 
-that 'activate' every time the user performs an action that involves the server.
+    1. "NetworkController" abstracts all of the networking/communication concerns of our program.
+        It uses sockets to manage the communication between a server and its clients.
+    2. "GameController" manages the server-client communications from the client's end by using 
+        multiple 'listeners'/methods that 'activate' every time the user performs an action that 
+        involves the server. There will be a Game Controller for each player connected to the game.
+    3. "ServerController" manages the commmunications between the server and the model by processing 
+        world updates and all the movement commands recieved from each player so that the "Server" 
+        class can act as a landing point that does not touch the Model.
 
-This controller is a concern of the client (each player) and so one will be created for each player.
-This is done by giving the Game Controller a reference to the Network Controller then, in the Game Controller, setting a 
-delegate within the Network Controller's socket state (OnNetworkAction) to one of Game Controller's own methods. 
-
-- The view (which we called SnakeClient) handles the interface between the user and the game. It consists of a MAUI 
+- The view (SnakeClient) handles the interface between the user and the game. It consists of a MAUI 
 application and two important classes: "MainPage" which handled the actual view/panel/window that the game is played on 
 and "WorldPanel" which simply drew pictures onto the MainPage.
 
