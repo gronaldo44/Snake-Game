@@ -19,34 +19,29 @@ using System.Data;
 
 
 /// <summary>
-/// TODO: Header comments.
+/// This Class acts as a Server for a multiplayer Snake game. It maintains the state of the world, 
+/// computes all game mechanics, and communicates to the clients (each player of the game).
+/// 
+/// This project was written using the Model, View, Controller design pattern. The solution contains
+/// projects for each one. "SnakeClient" is the project for the view.
+/// 
+/// Authors: Ronald Foster & Shem Snow
+/// Created 11/25/2022
+/// Last Updated: 12/08/2022
 /// </summary>
 public class Server
 {
     private static ServerController controller = new();
 
-    /*
-     * TODO: Abstract logic such that,
-     *      Server is a landing point that doesn't touch the model
-     *      ServerController handles communications between Server and the model
-     */
-
-    #region Server Boot
-    /**
-     * TODO: Need a collection of all commands that need to be executed on this frame.
-     * Or maybe we could just change an attribute (such as direction or boolean flag) when the 
-     * command is received then update the objects' appearance at the start of each frame.
-     */
+    /// TODO: do we even need a default Constructor?
+    //public Server()
+    //{
+    //}
 
     /// <summary>
-    /// TODO: Default Constructor
-    /// </summary>
-    public Server()
-    {
-    }
-
-    /// <summary>
-    /// For unit testing
+    /// Creates and runs a server using the settings read from a "settings.xml" file.
+    /// A TCP Listener is used to pass control of the server to the "ServerControler" project/class 
+    /// then an infinite loop to update the game's world runs until the server application is closed.
     /// </summary>
     /// <param name="args"></param>
     public static void Main(string[] args)
@@ -81,7 +76,5 @@ public class Server
             frameTimer.Restart();
         } 
     }
-
-    #endregion
 
 }
