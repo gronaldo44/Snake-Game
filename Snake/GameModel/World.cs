@@ -20,9 +20,6 @@ public class World
     public Dictionary<int, PowerUp> powerups { get; private set; }   // All powerups to be drawn each frame
     public int worldSize;                   // Size of each side of the world; the world is square
     public int playerID;                    // This client's snakes player ID
-    public int FramesPerShot;               // Legacy code
-    public int MSPerFrame;                  // How many miliseconds for each frame
-    public int RespawnRate;                 // How many frames before snakes respawn
     public int MaxPowerups { get; private set; } = 20;   // Max amount of powerups aloud in the world
 
     // Construct an empty world
