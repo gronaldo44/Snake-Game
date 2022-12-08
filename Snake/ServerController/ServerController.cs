@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace SnakeGame
 {
@@ -202,7 +203,7 @@ namespace SnakeGame
                 body = new List<Vector2D>();
                 body.Add(tail);
                 body.Add(head);
-            // Check if placing the snake here will result in a collision. If so, repeat the loop.
+                // Check if placing the snake here will result in a collision. If so, repeat the loop.
             } while (InvalidSpawn(body));
 
             // Then return the newly spawned snake's body as a list with two vectors: {head, tail}.
@@ -371,7 +372,7 @@ namespace SnakeGame
             int index = s.body.Count() - 1;
             Vector2D segmentDir = s.direction;  // tmp value
             while (index > 0 && !(segmentDir.X == oppositeDir.X && segmentDir.Y == oppositeDir.Y))
-                
+
             {
                 segmentDir = CalculateSegmentDirection(s.body[index - 1], s.body[index--]);
             }
@@ -478,7 +479,7 @@ namespace SnakeGame
             {
                 if (segmentDir.X == DOWN.X && segmentDir.Y == DOWN.Y)
                 {   // Going Down
-                    topLeft = new Vector2D(p1.X - (width / 2), p1.Y - (width /2 ));
+                    topLeft = new Vector2D(p1.X - (width / 2), p1.Y - (width / 2));
                     bottomRight = new Vector2D(p2.X + (width / 2), p2.Y + (width / 2));
                 }
                 else
@@ -646,7 +647,7 @@ namespace SnakeGame
                         Vector2D head = s.body.Last() + (s.direction * 3);
                         s.body.Last().X = head.X;
                         s.body.Last().Y = head.Y;
-                        // See if the head collided with anything that killed the snake
+                        // See if the head collided with anything special
                         if (!DiedThisFrame(s))
                         {   // See if the head grabbed any powerups
                             foreach (PowerUp p in theWorld.powerups.Values)
@@ -660,8 +661,16 @@ namespace SnakeGame
                                 }
                             }
                             HandleWrapAround(s);
+                            // Progress the snake's tail
+                            if (s.FoodInBelly > 0)
+                            {   // The snake grows one frame worth of movement
+                                s.FoodInBelly -= 1;
+                            }
+                            else
+                            {   // Move the rest of the body starting from the tail
+                                MoveTailOfSnake(s);
+                            }
                         }
-                        
                         else
                         {   // The snake died and shouldn't be moved
                             s.died = true;
@@ -671,7 +680,7 @@ namespace SnakeGame
                         }
                     }
                 }
-                foreach(int snake in disconnectedSnakes)
+                foreach (int snake in disconnectedSnakes)
                 {
                     theWorld.snakes.Remove(snake);
                 }
@@ -681,41 +690,28 @@ namespace SnakeGame
         /// <summary>
         /// Checks to see if the argued snake's head has crossed any world borders.
         /// If it has then a new snake joint will be created at the opposite side of the world. 
-        /// 
-        /// Regardless of if a border was crossed, the snake's tail will progress forword if that 
-        /// snake is not growing.
-        /// 
         /// </summary>
         /// <param name="snake"></param>
         private void HandleWrapAround(Snake snake)
         {
             // Create a new vector to represent a new joint in case the snake crosses a world border.
             Vector2D newhead = new(snake.body.Last());
+            Vector2D borderEdge;
 
             // See if the head is outside the world and add the new joint to the snake's body if it is.
-
-            if (snake.body.Last().Y < -1 * theWorld.worldSize / 2 || snake.body.Last().Y > theWorld.worldSize / 2)
+            if (snake.body.Last().Y < -(theWorld.worldSize / 2) || snake.body.Last().Y > theWorld.worldSize / 2)
             { // top and bottom borders
-                newhead.Y *= -1;
+                newhead.Y = (newhead.Y < 0) ? (theWorld.worldSize / 2) : -(theWorld.worldSize / 2);
+                borderEdge = new(newhead);
+                snake.body.Add(borderEdge);
                 snake.body.Add(newhead);
             }
-
-
-            else if (snake.body.Last().Y < -1 * theWorld.worldSize / 2 || snake.body.Last().Y < -1 * theWorld.worldSize / 2)
+            else if (snake.body.Last().X < -(theWorld.worldSize / 2) || snake.body.Last().X > (theWorld.worldSize / 2))
             { // left and right borders
-                newhead.X *= -1;
+                newhead.X = (newhead.X < 0) ? (theWorld.worldSize / 2) : -(theWorld.worldSize / 2);
+                borderEdge = new(newhead);
+                snake.body.Add(borderEdge);
                 snake.body.Add(newhead);
-            }
-
-
-            // Regardless of wrap-arounds, progress the snake's tail
-            if (snake.FoodInBelly > 0)
-            {   // The snake grows one frame worth of movement
-                snake.FoodInBelly -= 1;
-            }
-            else
-            {   // Move the rest of the body starting from the tail
-                MoveTailOfSnake(snake);
             }
         }
 
@@ -726,6 +722,7 @@ namespace SnakeGame
         private void MoveTailOfSnake(Snake s)
         {
             int movement = 3;
+
             // Clean up tail-end joints
             Vector2D tail = s.body[1] - s.body[0];
             while (tail.Length() < movement)
@@ -733,6 +730,10 @@ namespace SnakeGame
                 movement -= (int)tail.Length();
                 s.body.RemoveAt(0);
                 tail = s.body[1] - s.body[0];
+            }
+            if (tail.Length() >= theWorld.worldSize)
+            {   // The tail wrapped around the world
+                s.body.RemoveAt(0);
             }
 
             // Find what direction the tail is moving in
@@ -755,16 +756,19 @@ namespace SnakeGame
                 if (p1.Y < p2.Y)
                 {
                     return DOWN * 1;
-                } else
+                }
+                else
                 {
                     return UP * 1;
                 }
-            } else
+            }
+            else
             {
                 if (p1.X < p2.X)
                 {
                     return RIGHT * 1;
-                } else
+                }
+                else
                 {
                     return LEFT * 1;
                 }
@@ -941,7 +945,7 @@ namespace SnakeGame
                     }
                 }
                 // Remove disconnected clients
-                foreach(long id in disconnectedClients)
+                foreach (long id in disconnectedClients)
                 {
                     lock (theWorld)
                     {
