@@ -21,8 +21,6 @@ using NetworkUtil;
 /// </summary>
 public class Server
 {
-    private static ServerController controller = new();
-
     /// <summary>
     /// Creates and runs a server using the settings read from a "settings.xml" file.
     /// A TCP Listener is used to pass control of the server to the "ServerControler" project/class 
@@ -34,6 +32,7 @@ public class Server
         // Get the game settings
         Server s = new();
         // Start listening for and receiving snake-clients
+        ServerController controller = new();
         TcpListener listener = Networking.StartServer(controller.ClientConnection, 11000);
         Console.WriteLine("Server is now accepting clients.");
 
