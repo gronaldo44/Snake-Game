@@ -594,6 +594,7 @@ namespace SnakeGame
         #endregion
 
         #region Updating The Model
+
         /// <summary>
         /// Updates the state of each object in the world (movement, position, booleans) using the 
         /// Server Controller.
@@ -658,8 +659,9 @@ namespace SnakeGame
                                     break;
                                 }
                             }
+                            HandleWrapAround(s);
                         }
-                        //  TODO: else if (snake reached edge of map and should wrap)
+                        
                         else
                         {   // The snake died and shouldn't be moved
                             s.died = true;
@@ -667,22 +669,53 @@ namespace SnakeGame
                             s.score = 0;
                             break;
                         }
-
-                        // Tail-end movement
-                        if (s.FoodInBelly > 0)
-                        {   // The snake grows one frame worth of movement
-                            s.FoodInBelly -= 1;
-                        }
-                        else
-                        {   // Move the rest of the body starting from the tail
-                            MoveTailOfSnake(s);
-                        }
                     }
                 }
                 foreach(int snake in disconnectedSnakes)
                 {
                     theWorld.snakes.Remove(snake);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Checks to see if the argued snake's head has crossed any world borders.
+        /// If it has then a new snake joint will be created at the opposite side of the world. 
+        /// 
+        /// Regardless of if a border was crossed, the snake's tail will progress forword if that 
+        /// snake is not growing.
+        /// 
+        /// </summary>
+        /// <param name="snake"></param>
+        private void HandleWrapAround(Snake snake)
+        {
+            // Create a new vector to represent a new joint in case the snake crosses a world border.
+            Vector2D newhead = new(snake.body.Last());
+
+            // See if the head is outside the world and add the new joint to the snake's body if it is.
+
+            if (snake.body.Last().Y < -1 * theWorld.worldSize / 2 || snake.body.Last().Y > theWorld.worldSize / 2)
+            { // top and bottom borders
+                newhead.Y *= -1;
+                snake.body.Add(newhead);
+            }
+
+
+            else if (snake.body.Last().Y < -1 * theWorld.worldSize / 2 || snake.body.Last().Y < -1 * theWorld.worldSize / 2)
+            { // left and right borders
+                newhead.X *= -1;
+                snake.body.Add(newhead);
+            }
+
+
+            // Regardless of wrap-arounds, progress the snake's tail
+            if (snake.FoodInBelly > 0)
+            {   // The snake grows one frame worth of movement
+                snake.FoodInBelly -= 1;
+            }
+            else
+            {   // Move the rest of the body starting from the tail
+                MoveTailOfSnake(snake);
             }
         }
 
