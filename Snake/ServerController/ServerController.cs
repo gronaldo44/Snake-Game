@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -178,7 +179,7 @@ namespace SnakeGame
 
             // Choose a random axis-aligned orientation for snake
             Random rng = new();
-            Vector2D spawnDir = UP; // assume vertical
+            Vector2D spawnDir = UP * 1; // assume vertical
             if (rng.Next(2) == 0) // 50% chance to swap to horizontal
             {
                 spawnDir.Rotate(90);
@@ -229,7 +230,7 @@ namespace SnakeGame
             }
             foreach (Snake s in theWorld.snakes.Values)
             {   // snakes
-                if (AreColliding(powerup, 16, s.body, 10))
+                if (AreColliding(powerup, 10, s.body, 10))
                     return true;
             }
             foreach (PowerUp p in theWorld.powerups.Values)
@@ -339,6 +340,8 @@ namespace SnakeGame
         /// <summary>
         /// Checks whether or not a body of a newly spawned snake is colliding with a 
         /// powerup
+        /// 
+        /// Powerup collision barriers are 10x10 squares
         /// </summary>
         /// <param name="body">newly spawned snake body</param>
         /// <param name="p">powerup</param>
@@ -361,16 +364,34 @@ namespace SnakeGame
         /// <returns>If the snake collided with itself</returns>
         private bool AreColliding(Snake s)
         {
-            List<Vector2D> collidableSegments = s.body.GetRange(0, s.OppositeTurnJointIndex - 1);
-            return AreColliding(s.body.Last(), 10, collidableSegments, 10);
+            // Find what direction is opposite to the snake's current direction
+            Vector2D oppositeDir = s.direction * -1;
+
+            // Starting from the head, travel through the snake until we find an opposite turn
+            int index = s.body.Count() - 1;
+            Vector2D segmentDir = s.direction;  // tmp value
+            while (index > 0 && !(segmentDir.X == oppositeDir.X && segmentDir.Y == oppositeDir.Y))
+                
+            {
+                segmentDir = CalculateSegmentDirection(s.body[index - 1], s.body[index--]);
+            }
+            if (index <= 0)
+            {   // There were no opposite turns
+                return false;
+            }
+
+            // Check for collision with the snake body from the tail up to the opposite turn
+            List<Vector2D> collidableBody = s.body.GetRange(0, index + 1);
+            return AreColliding(s.body.Last(), 10, collidableBody, 10);
         }
 
         /// <summary>
         /// Checks whether or not a given vector is colliding with an object
         /// </summary>
         /// <param name="v">vector</param>
+        /// <param name="vw">vector width</param>
         /// <param name="obj">object being collided with</param>
-        /// <param name="width">width of the object being collided with</param>
+        /// <param name="objWidth">width of the object being collided with</param>
         /// <returns>Whether or not the vector and object have collided</returns>
         private bool AreColliding(Vector2D v, int vw, List<Vector2D> obj, int objWidth)
         {
@@ -380,12 +401,13 @@ namespace SnakeGame
             vTopLeft.Y = v.Y - (vw / 2);
             vBottomRight.X = v.X + (vw / 2);
             vBottomRight.Y = v.Y + (vw / 2);
-            // Check the collision barrier one segment at a time
-            Vector2D objTopLeft, objBottomRight;
+
+            // Check each segment of the obj for collision with the vector
             for (int i = 0; i < obj.Count - 1; i++)
             {
-                Vector2D p1 = obj[i], p2 = obj[i + 1];
-                CalculateCollisionBarrier(p1, p2, objWidth, out objTopLeft, out objBottomRight);
+                // Calculate the collision barrier of this segment
+                Vector2D objTopLeft, objBottomRight;
+                CalculateCollisionBarrier(obj[i], obj[i + 1], objWidth, out objTopLeft, out objBottomRight);
                 // Check for collision
                 if (IsIntersectingRectangles(vTopLeft, vBottomRight, objTopLeft, objBottomRight))
                 {
@@ -400,7 +422,7 @@ namespace SnakeGame
         /// <summary>
         /// Checks whether or not a given head is colliding with a powerup
         /// 
-        /// Powerups have are 16 by 16 units
+        /// Powerups are 16x16 pixels but there collision barrier is 10x10
         /// </summary>
         /// <param name="head">Vector2D representing a head</param>
         /// <param name="p">powerup being collided with</param>
@@ -451,31 +473,31 @@ namespace SnakeGame
                     segmentDir = LEFT * 1;
                 }
             }
-            // Calculate corners of this segment of the collision barrier
+            // Calculate corners of this collision barrier
             if (isVertical)
             {
-                if (segmentDir == DOWN)
-                {
-                    topLeft = new Vector2D(p1.X - (width / 2) - 10, p1.Y - 10);
-                    bottomRight = new Vector2D(p2.X + (width / 2) + 10, p2.Y + 10);
+                if (segmentDir.X == DOWN.X && segmentDir.Y == DOWN.Y)
+                {   // Going Down
+                    topLeft = new Vector2D(p1.X - (width / 2), p1.Y - (width /2 ));
+                    bottomRight = new Vector2D(p2.X + (width / 2), p2.Y + (width / 2));
                 }
                 else
-                {
-                    topLeft = new Vector2D(p2.X - (width / 2) - 10, p2.Y - 10);
-                    bottomRight = new Vector2D(p1.X + (width / 2) + 10, p1.Y + 10);
+                {   // Going Up
+                    topLeft = new Vector2D(p2.X - (width / 2), p2.Y - (width / 2));
+                    bottomRight = new Vector2D(p1.X + (width / 2), p1.Y + (width / 2));
                 }
             }
             else
             {
-                if (segmentDir == RIGHT)
-                {
-                    topLeft = new Vector2D(p1.X - 10, p1.Y - (width / 2) - 10);
-                    bottomRight = new Vector2D(p2.X + 10, p2.Y + (width / 2) + 10);
+                if (segmentDir.X == RIGHT.X && segmentDir.Y == RIGHT.Y)
+                {   // Going Right
+                    topLeft = new Vector2D(p1.X - (width / 2), p1.Y - (width / 2));
+                    bottomRight = new Vector2D(p2.X + (width / 2), p2.Y + (width / 2));
                 }
                 else
-                {
-                    topLeft = new Vector2D(p2.X - 10, p2.Y - (width / 2) - 10);
-                    bottomRight = new Vector2D(p1.X + 10, p1.Y + (width / 2) + 10);
+                {   // Going Left
+                    topLeft = new Vector2D(p2.X - (width / 2), p2.Y - (width / 2));
+                    bottomRight = new Vector2D(p1.X + (width / 2), p1.Y + (width / 2));
                 }
             }
         }
@@ -538,10 +560,14 @@ namespace SnakeGame
             // Process the client's move command
             lock (theWorld)
             {
-                Snake clientSnake = theWorld.snakes[(int)state.ID];
-                if (cmd != null)
-                {
-                    clientSnake.MoveRequest = cmd.moving;
+                // See if the snake disconnected
+                if (theWorld.snakes.ContainsKey((int)state.ID))
+                {   // Queue the move command into the snake for next frame
+                    Snake clientSnake = theWorld.snakes[(int)state.ID];
+                    if (cmd != null)
+                    {
+                        clientSnake.MoveRequest = cmd.moving;
+                    }
                 }
             }
         }
@@ -602,8 +628,12 @@ namespace SnakeGame
                         s.alive = ++s.FramesSpentDead >= theWorld.RespawnRate;
                         if (s.alive)
                         {
+                            // Replace the snake into the world
                             s.body = SpawnSnake();
                             s.direction = CalculateSegmentDirection(s.body[0], s.body[1]);
+                            // Reset the snake's respawn timer
+                            Console.WriteLine("Snake " + s.name + " respawned.");
+                            s.FramesSpentDead = 0;
                         }
                     }
                     else
@@ -629,6 +659,7 @@ namespace SnakeGame
                                 }
                             }
                         }
+                        //  TODO: else if (snake reached edge of map and should wrap)
                         else
                         {   // The snake died and shouldn't be moved
                             s.died = true;
@@ -727,7 +758,7 @@ namespace SnakeGame
                 }
                 else
                 {   // Check for collisions with other snakes
-                    if (AreColliding(s.body.Last(), 10, snakeBeingHit.body, 10))
+                    if (snakeBeingHit.alive && AreColliding(s.body.Last(), 10, snakeBeingHit.body, 10))
                     {
                         return true;
                     }
@@ -825,23 +856,17 @@ namespace SnakeGame
             }
             // See if the client requested a valid movement
             if (s.direction.ToAngle() == (moveRequest * -1).ToAngle())
-            {
+            {   // Invalid movement; movement request is denied
                 return;
             }
             else
-            {
+            {   // Movement request accepted
                 s.direction = moveRequest;
             }
 
             // Place a new joint where the head is
             Vector2D newHead = s.body.Last() * 1;
             s.body.Add(newHead);
-            // Update the snake's opposite direction for self-collision checking
-            if (s.direction == (s.OppositeDirection * -1))
-            {
-                s.OppositeDirection = s.direction;
-                s.OppositeTurnJointIndex = s.body.Count() - 2;
-            }
         }
 
         #endregion
