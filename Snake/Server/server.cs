@@ -33,11 +33,6 @@ public class Server
 {
     private static ServerController controller = new();
 
-    /// TODO: do we even need a default Constructor?
-    //public Server()
-    //{
-    //}
-
     /// <summary>
     /// Creates and runs a server using the settings read from a "settings.xml" file.
     /// A TCP Listener is used to pass control of the server to the "ServerControler" project/class 
