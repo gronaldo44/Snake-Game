@@ -170,4 +170,5 @@ The completed program is version 1.0.0 and any additional features will be added
 		# TODO: Re-read all assignment instructions to make sure we're up to par
 		# TODO: Refactor ALL ps9 code
 		# TODO: Update comments for the ENTIRE project, PS7, PS8, PS9
+		# TODO: Don't allow snakes to turn so fast that they kill themselves
 
