@@ -35,8 +35,6 @@ public class Snake
     #endregion
     public int FoodInBelly;       // For when a snake gets a powerup
     public int FramesSpentDead;   // For when a snake is waiting to respawn
-    public int OppositeTurnJointIndex = 1;   // Index in the list of snake joints
-    public Vector2D OppositeDirection = new();  // What direction is opposite of the snake's general movement
     public string MoveRequest = "none";
 
     /// <summary>
@@ -62,7 +60,6 @@ public class Snake
         this.name = name;
         this.alive = true;
         this.join = true;
-        this.OppositeDirection = direction * -1;
     }
 
     /// <summary>
