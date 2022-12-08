@@ -114,8 +114,28 @@ The completed program is version 1.0.0 and any additional features will be added
 
 
 
+----------------------------------------------  TODO: everything below this line ------------------------------------- 
+
+
+
 # Design Decisions for PS9 (the Server)
 ---------------------------------------
+
+	- We abstracted all collision-determination logic into a helper method called "AreColliding" which we overloaded 
+	5 different times to handle every possible type of collision:
+		two snakes, a snake and a list<Vector2D>, a snake and itself, a snake head or body with a 2DVector.
+
+	- Determining collisions between world objects was done by calculating their top-left and bottom-right borders 
+	and imagining them as rectangles. If one rectangle's bottom right coordinate was to the left and above the other
+	rectangle's top left coordinate then it was not possible for them to overlap. After checking every possible way 
+	that two rectangles COULD NOT intersect then we concluded whether or not they did intersect.
+
+	- Snake movemovent was done by representing the snake as a list of 2D vectors which could be imagined as segments
+	that each contain two joints and so only the head and tail needed to be moved.
+	When the ending joints had equal value then the last segment could be deleted.
+
+	- Snake size was increased by giving each snake a "foodInBelly" field which would hold off on moving the tail
+	of the snake forward until there was no more food in the snake's belly
 
 
 # Design Notes for PS9 (the Server)
@@ -124,7 +144,7 @@ The completed program is version 1.0.0 and any additional features will be added
 
 
 
-----------------------------------------------  TODO: everything below this line ------------------------------------- 
+
 	#Project structure | 11/30
 		# TODO: learn about reading xml files and start implementing the Server class by updating the model
 			COMPLETE
