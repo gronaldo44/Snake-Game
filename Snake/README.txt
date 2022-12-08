@@ -137,6 +137,12 @@ The completed program is version 1.0.0 and any additional features will be added
 	- Snake size was increased by giving each snake a "foodInBelly" field which would hold off on moving the tail
 	of the snake forward until there was no more food in the snake's belly
 
+	# Additional Feature (Game Modes)
+		— There are two game modes for Snake. The one being played is decided in the server settings.xml file
+			— Team Death Match: In this game mode, snakes with an even client id can pass through each other 
+				without dying. And snakes with an odd client id can pass through each other without dying.
+			— Free For All: In this game mode, no snake can pass through another snake without dying.
+
 
 # Design Notes for PS9 (the Server)
 ------------------------------------
@@ -185,11 +191,15 @@ The completed program is version 1.0.0 and any additional features will be added
 			Self-collisions:	COMPLETE
 
 	#What is left 12/8
-		# TODO: Handling socketstate errors (should we even do this? [check instructions])
 		# TODO: Remove unused using statements in the ENTIRE project, PS7, PS8, PS9
 		# TODO: snake parameters are being serialized in the wrong order
 		# TODO: Re-read all assignment instructions to make sure we're up to par
+			COMPLETE
 		# TODO: Refactor ALL ps9 code
 		# TODO: Update comments for the ENTIRE project, PS7, PS8, PS9
 		# TODO: Don't allow snakes to turn so fast that they kill themselves
+			COMPLETE
+		# TODO: Game modes
+			COMPLETE
+		# TODO: Check that the settings.xml file will be properly downloaded from the github
 
