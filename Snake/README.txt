@@ -149,8 +149,25 @@ The completed program is version 1.0.0 and any additional features will be added
 	
 	#What is left 12/7
 		# TODO: check the diameters of each object (snakes, powerups, and walls) for collision barrier
+			COMPLETE
 		# TODO: Snakes need to die when they collide with snakes and themselves
+			COMPLETE
 		# TODO: reset snake respawn timers when they die
+			COMPLETE
+		# TODO: Handling socketstate errors (should we even do this? [check instructions])
+		# TODO: Verify that disconnected clients are being removed properly
+			COMPLETE
+		# TODO: Wrap snakes around the world
+		# TODO: snake parameters are being serialized in the wrong order
+		# TODO: Debug/Fix segment collisions (self-collisions of snakes, wall collisions, and collisions with other snakes)
+			SNAKES:				COMPLETE
+			Self-collisions:	COMPLETE
 
-
+	#What is left 12/8
+		# TODO: Handling socketstate errors (should we even do this? [check instructions])
+		# TODO: Wrap snakes around the world
+		# TODO: snake parameters are being serialized in the wrong order
+		# TODO: Re-read all assignment instructions to make sure we're up to par
+		# TODO: Refactor ALL ps9 code
+		# TODO: Update comments for the ENTIRE project, PS7, PS8, PS9
 
