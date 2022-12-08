@@ -49,11 +49,11 @@ public class Server
             // Print the current framerate the server is running at
             if (serverFPS.ElapsedMilliseconds >= 1000)
             {
-                Console.WriteLine("FPS: " + (1000 / controller.theWorld.MSPerFrame));
+                Console.WriteLine("FPS: " + (1000 / controller.MSPerFrame));
                 serverFPS.Restart();
             }
 
-            while (frameTimer.ElapsedMilliseconds < controller.theWorld.MSPerFrame)
+            while (frameTimer.ElapsedMilliseconds < controller.MSPerFrame)
             {
                 // Wait for the frame to finish
             }
