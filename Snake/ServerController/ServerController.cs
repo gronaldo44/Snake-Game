@@ -19,11 +19,20 @@ namespace SnakeGame
     /// </summary>
     public class ServerController
     {
-        #region Global Fields
+        #region Class Fields
         // Model Params
         public World theWorld { get; private set; } = new();
         private int powerupId = 0;
-        private int powerupSpawnDelay = 200;    // How long to wait before spawning the first powerup
+        private int powerupSpawnTimeRemaining;
+
+        // Game Settings
+        private int framesPerShot;               // Legacy code
+        public int MSPerFrame { get; private set; }     // How many miliseconds for each frame
+        private int snakeRespawnRate;       // How many frames before snakes respawn
+        private int maxPowerupSpawn;    // How long to wait before spawning the first powerup
+        private int foodGrowth;     // How many frames snakes grow for each food they eat
+        private int snakeSpawnLen;  // How big snakes are when they are initially spawned
+        private string mode = "Free For All";   // This controller supports two modes ("Team Death Match" & "Free For All")
 
         // Directions
         private static Vector2D UP = new Vector2D(0, -1);
@@ -45,31 +54,51 @@ namespace SnakeGame
             // Get the current settings
             XmlDocument settings = new();
             settings.Load("settings.xml");
-            // Read the frame settings and world size
             XmlNode? fpshot = settings.SelectSingleNode("//GameSettings/FramesPerShot");
             if (fpshot != null)
             {
-                theWorld.FramesPerShot = int.Parse(fpshot.InnerText);
+                framesPerShot = int.Parse(fpshot.InnerText);
             }
             XmlNode? mspframe = settings.SelectSingleNode("//GameSettings/MSPerFrame");
             if (mspframe != null)
             {
-                theWorld.MSPerFrame = int.Parse(mspframe.InnerText);
+                MSPerFrame = int.Parse(mspframe.InnerText);
             }
             XmlNode? respawnRate = settings.SelectSingleNode("//GameSettings/RespawnRate");
             if (respawnRate != null)
             {
-                theWorld.RespawnRate = int.Parse(respawnRate.InnerText);
+                snakeRespawnRate = int.Parse(respawnRate.InnerText);
             }
             XmlNode? univereSize = settings.SelectSingleNode("//GameSettings/UniverseSize");
             if (univereSize != null)
             {
                 theWorld.worldSize = int.Parse(univereSize.InnerText);
             }
-            // Read the walls node
+            XmlNode? maxPowerupDelay = settings.SelectSingleNode("//GameSettings/MaxPowerupDelay");
+            if (maxPowerupDelay != null)
+            {
+                maxPowerupSpawn = int.Parse(maxPowerupDelay.InnerText);
+            }
+            XmlNode? snakeGrowth = settings.SelectSingleNode("//GameSettings/SnakeGrowth");
+            if (snakeGrowth != null)
+            {
+                foodGrowth = int.Parse(snakeGrowth.InnerText);
+            }
+            XmlNode? snakeStartingLen = settings.SelectSingleNode("//GameSettings/SnakeStartingLength");
+            if (snakeStartingLen != null)
+            {
+                snakeSpawnLen = int.Parse(snakeStartingLen.InnerText);
+            }
+            XmlNode? gameMode = settings.SelectSingleNode("//GameSettings/GameMode");
+            if (gameMode != null)
+            {
+                mode = gameMode.InnerText;
+            }
+
+            // Read the the list of walls
             XmlNode? wallsNode = settings.SelectSingleNode("//GameSettings/Walls");
             if (wallsNode != null)
-            {   // Read each wall
+            {   // Read each individual wall
                 XmlNodeList walls = wallsNode.ChildNodes;
                 foreach (XmlNode w in walls)
                 {
@@ -169,8 +198,6 @@ namespace SnakeGame
         /// <summary>
         /// Finds a randomly-chosen empty spot in the world that can fit a snake and returns a 
         /// list of 2DVectors spanning that space. 
-        /// 
-        /// Snakes are 120 units upon respawn.
         /// </summary>
         /// <returns>The body of a newly spawned snake</returns>
         private List<Vector2D> SpawnSnake()
@@ -197,9 +224,9 @@ namespace SnakeGame
                 int xCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 int yCor = rng.Next(-1 * theWorld.worldSize / 2, theWorld.worldSize / 2);
                 Vector2D head = new(xCor, yCor);
-                // Calculate where the tail should be based on spawn direction and default snake length (120).
-                Vector2D tail = new Vector2D(head.X + (120 * spawnDir.X),
-                    head.Y + (120 * spawnDir.Y));
+                // Calculate where the tail should be based on spawn direction and snake length.
+                Vector2D tail = new Vector2D(head.X + (snakeSpawnLen * spawnDir.X),
+                    head.Y + (snakeSpawnLen * spawnDir.Y));
                 body = new List<Vector2D>();
                 body.Add(tail);
                 body.Add(head);
@@ -308,11 +335,21 @@ namespace SnakeGame
         }
 
         /// <summary>
+        /// Checks whether or not two snakes are colliding with each other
+        /// 
+        /// Snakes cannot collide with dead snakes
+        /// </summary>
+        /// <param name="snake1">Snake being checked for collision</param>
+        /// <param name="snake2">Snake being collided with</param>
+        /// <returns>Whether or not the two snakes collided</returns>
+        private bool AreColliding(Snake snake1, Snake snake2)
+        {
+            return snake2.alive && AreColliding(snake1.body.Last(), 10, snake2.body, 10);
+        }
+
+        /// <summary>
         /// Checks whether or not the body of a newly spawned snake is colliding with 
         /// an object
-        /// 
-        /// Newly spawned snakes are 120 units long with one straight axis-aligned 
-        /// segment.
         /// </summary>
         /// <param name="body">newly spawned snake's body</param>
         /// <param name="obj">obj being collided with</param>
@@ -361,29 +398,31 @@ namespace SnakeGame
         /// <summary>
         /// Checks whether or not a given snake is colliding with itself
         /// </summary>
-        /// <param name="s">snake</param>
+        /// <param name="snake">snake</param>
         /// <returns>If the snake collided with itself</returns>
-        private bool AreColliding(Snake s)
+        private bool AreColliding(Snake snake)
         {
+            // Verify this snake is large enough to self-collide
+            if (snake.body.Count() <= 2)
+                return false;
+
             // Find what direction is opposite to the snake's current direction
-            Vector2D oppositeDir = s.direction * -1;
+            Vector2D oppositeDir = snake.direction * -1;
 
             // Starting from the head, travel through the snake until we find an opposite turn
-            int index = s.body.Count() - 1;
-            Vector2D segmentDir = s.direction;  // tmp value
+            int index = snake.body.Count() - 1;
+            Vector2D segmentDir = snake.direction;
             while (index > 0 && !(segmentDir.X == oppositeDir.X && segmentDir.Y == oppositeDir.Y))
-
             {
-                segmentDir = CalculateSegmentDirection(s.body[index - 1], s.body[index--]);
+                segmentDir = CalculateSegmentDirection(snake.body[index - 1], snake.body[index--]);
             }
-            if (index <= 0)
-            {   // There were no opposite turns
+            // Check if there were any opposite turns
+            if (index < 0)
                 return false;
-            }
 
             // Check for collision with the snake body from the tail up to the opposite turn
-            List<Vector2D> collidableBody = s.body.GetRange(0, index + 1);
-            return AreColliding(s.body.Last(), 10, collidableBody, 10);
+            List<Vector2D> collidableBody = snake.body.GetRange(0, index + 1);
+            return AreColliding(snake.body.Last(), 10, collidableBody, 10);
         }
 
         /// <summary>
@@ -624,10 +663,11 @@ namespace SnakeGame
                         break;
                     }
 
-                    s.died = false; // Clean up any snakes that died last frame
+                    // Handle dead snakes
+                    s.died = false;
                     if (!s.alive)
                     {   // Lower the Snake's respawn timer
-                        s.alive = ++s.FramesSpentDead >= theWorld.RespawnRate;
+                        s.alive = ++s.FramesSpentDead >= snakeRespawnRate;
                         if (s.alive)
                         {
                             // Replace the snake into the world
@@ -638,15 +678,17 @@ namespace SnakeGame
                             s.FramesSpentDead = 0;
                         }
                     }
+                    // Move alive snakes
                     else
-                    {   // Move the snake
-                        // Process Move Commands
+                    {
+                        // Process Move Commands From Clients
                         UpdateSnakeDirection(s);
 
                         // Move the head
                         Vector2D head = s.body.Last() + (s.direction * 3);
                         s.body.Last().X = head.X;
                         s.body.Last().Y = head.Y;
+
                         // See if the head collided with anything special
                         if (!DiedThisFrame(s))
                         {   // See if the head grabbed any powerups
@@ -655,12 +697,14 @@ namespace SnakeGame
                                 if (AreColliding(s.body.Last(), p))
                                 {   // The snake collided with a powerup
                                     s.score++;
-                                    s.FoodInBelly += 12;
+                                    s.FoodInBelly += foodGrowth;
                                     p.died = true;
                                     break;
                                 }
                             }
+                            // See if the head reached the edge of the world
                             HandleWrapAround(s);
+
                             // Progress the snake's tail
                             if (s.FoodInBelly > 0)
                             {   // The snake grows one frame worth of movement
@@ -680,6 +724,8 @@ namespace SnakeGame
                         }
                     }
                 }
+
+                // Remove disconnected snakes from the world
                 foreach (int snake in disconnectedSnakes)
                 {
                     theWorld.snakes.Remove(snake);
@@ -779,25 +825,43 @@ namespace SnakeGame
         /// Returns a boolean that indicates if a snake is currently colliding with either another 
         /// snake or a wall and should therefor be dead.
         /// </summary>
-        /// <param name="s">Snake being checked for death</param>
+        /// <param name="snake">Snake being checked for death</param>
         /// <returns>Whether or not the snake died</returns>
-        private bool DiedThisFrame(Snake s)
+        private bool DiedThisFrame(Snake snake)
         {
             // See if the snake died by hitting a snake
             foreach (Snake snakeBeingHit in theWorld.snakes.Values)
             {
-                if (snakeBeingHit.id == s.id)
+                if (snakeBeingHit.id == snake.id)
                 {   // Check for self collisions
-                    if (AreColliding(s))
-                    {
+                    if (AreColliding(snake))
                         return true;
-                    }
                 }
                 else
-                {   // Check for collisions with other snakes
-                    if (snakeBeingHit.alive && AreColliding(s.body.Last(), 10, snakeBeingHit.body, 10))
-                    {
-                        return true;
+                {   // Check for collisions with enemy snakes
+                    if (mode == "Team Death Match")
+                    {   // Even Snakes can pass through Even Snakes and Odds through Odds
+                        bool evenSnakeClient = snake.id % 2 == 0;
+                        if (evenSnakeClient)
+                        {   // This snake can pass through other evens
+                            if (!(snakeBeingHit.id % 2 == 0))
+                            {   // Enemy snake
+                                if (AreColliding(snake, snakeBeingHit))
+                                    return true;
+                            }
+                        }
+                        else
+                        {   // This snake can pass through other odds
+                            if (snakeBeingHit.id % 2 == 0)
+                            {   // Enemy Snake
+                                if (AreColliding(snake, snakeBeingHit))
+                                    return true;
+                            }
+                        }
+                    } else
+                    {   // Snakes die if they collide with any other snakes
+                        if (AreColliding(snake, snakeBeingHit))
+                            return true;
                     }
                 }
             }
@@ -817,7 +881,7 @@ namespace SnakeGame
                     wallSeg.Add(w.p1);
                     wallSeg.Add(w.p2);
                 }
-                if (AreColliding(s.body.Last(), 10, wallSeg, 50))
+                if (AreColliding(snake.body.Last(), 10, wallSeg, 50))
                 {
                     return true;
                 }
@@ -834,11 +898,11 @@ namespace SnakeGame
         {
             if (theWorld.powerups.Count() < theWorld.MaxPowerups)
             {
-                if (powerupSpawnDelay == 0)
+                if (powerupSpawnTimeRemaining == 0)
                 {
                     // Find a valid spawn location for the snake's starting segment
                     Random rng = new();
-                    Vector2D loc = new();   // tmp value
+                    Vector2D loc;   // tmp value
                     do
                     {
                         // Randomly place the powerup
@@ -847,14 +911,14 @@ namespace SnakeGame
                         loc = new(xCor, yCor);
                     } while (InvalidSpawn(loc));
                     // Reset the spawn timer for the next powerup
-                    powerupSpawnDelay = rng.Next(0, 201);
+                    powerupSpawnTimeRemaining = rng.Next(0, maxPowerupSpawn);
                     // Spawn the powerup into the world
                     PowerUp p = new PowerUp(powerupId++, loc);
                     theWorld.powerups.Add(p.id, p);
                 }
                 else
                 {   // Lower the spawn timer by one frame
-                    powerupSpawnDelay--;
+                    powerupSpawnTimeRemaining--;
                 }
             }
         }
@@ -864,26 +928,28 @@ namespace SnakeGame
         /// snake to allow turning and updates the opposite direction for self- 
         /// collision checking.
         /// 
-        /// Snakes cannot turn 180 degrees.
+        /// Snakes cannot turn 180 degrees in one command.
+        /// 
+        /// Snakes cannot turn 180 degrees until they have traveled their width (10 units).
         /// </summary>
-        /// <param name="s">Snake</param>
-        private void UpdateSnakeDirection(Snake s)
+        /// <param name="snake">Snake</param>
+        private void UpdateSnakeDirection(Snake snake)
         {
             // See where the client is trying to turn
             Vector2D moveRequest = new();
-            if (s.MoveRequest == "up")
+            if (snake.MoveRequest == "up")
             {
                 moveRequest = UP * 1;
             }
-            else if (s.MoveRequest == "right")
+            else if (snake.MoveRequest == "right")
             {
                 moveRequest = RIGHT * 1;
             }
-            else if (s.MoveRequest == "down")
+            else if (snake.MoveRequest == "down")
             {
                 moveRequest = DOWN * 1;
             }
-            else if (s.MoveRequest == "left")
+            else if (snake.MoveRequest == "left")
             {
                 moveRequest = LEFT * 1;
             }
@@ -891,19 +957,39 @@ namespace SnakeGame
             {
                 return;
             }
+
             // See if the client requested a valid movement
-            if (s.direction.ToAngle() == (moveRequest * -1).ToAngle())
-            {   // Invalid movement; movement request is denied
+            if (moveRequest.Equals(snake.direction))
+            {   // The snake is already moving in this direction
                 return;
             }
-            else
-            {   // Movement request accepted
-                s.direction = moveRequest;
+            if (snake.body.Count() >= 3)
+            {
+                // Calculate the size of the neck
+                Vector2D neckP1 = snake.body[snake.body.Count() - 2];
+                Vector2D neckP2 = snake.body[snake.body.Count() - 1];
+                double neckLen = (neckP2 - neckP1).Length();
+                // See if the head is turning 180 degrees from the segment before the neck
+                Vector2D shoulderP1 = snake.body[snake.body.Count() - 3];
+                Vector2D shoulderP2 = snake.body[snake.body.Count() - 2];
+                Vector2D oppositeDir = moveRequest * -1;
+                Vector2D shoulderDir = CalculateSegmentDirection(shoulderP1, shoulderP2);
+                if ((shoulderDir.X == oppositeDir.X && shoulderDir.Y == oppositeDir.Y)
+                    && neckLen <= 10)
+                {   // The snake cannot turn 180 degrees yet
+                    return;
+                }
             }
+            if (snake.direction.ToAngle() == (moveRequest * -1).ToAngle())
+            {   // Snakes cannot turn 180 degrees in one command
+                return;
+            }
+            // Movement request accepted
+            snake.direction = moveRequest;
 
             // Place a new joint where the head is
-            Vector2D newHead = s.body.Last() * 1;
-            s.body.Add(newHead);
+            Vector2D newHead = snake.body.Last() * 1;
+            snake.body.Add(newHead);
         }
 
         #endregion
